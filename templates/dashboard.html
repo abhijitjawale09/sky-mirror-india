@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero-grid">
+  <div class="hero-copy glass-panel reveal">
+    <div class="eyebrow">AI-Powered Digital Twin</div>
+    <h1>India's climate, mirrored as a living prediction system.</h1>
+    <p class="hero-text">A modern Flask dashboard for rainfall and temperature intelligence, fusing national climate datasets, predictive models, and what-if simulations into one operating view.</p>
+
+    <div class="hero-actions">
+      <button class="primary-button" data-region-switch="Kerala Coast">Kerala Coast</button>
+      <button class="ghost-button" data-region-switch="Indo-Gangetic Plain">Indo-Gangetic Plain</button>
+    </div>
+
+    <div class="hero-metrics">
+      <article>
+        <span>Monsoon Pulse</span>
+        <strong id="metric-monsoon">{{ state.metrics.monsoon_pulse }}</strong>
+      </article>
+      <article>
+        <span>Heat Stress</span>
+        <strong id="metric-heat">{{ state.metrics.heat_stress }}</strong>
+      </article>
+      <article>
+        <span>System Stability</span>
+        <strong id="metric-stability">{{ state.metrics.stability }}</strong>
+      </article>
+    </div>
+  </div>
+
+  <div class="hero-radar glass-panel reveal delay-1">
+    <div class="radar-header">
+      <div>
+        <div class="section-label">Digital Twin Status</div>
+        <h2 id="region-name">{{ state.region }}</h2>
+      </div>
+      <div class="status-pill">Live PoC</div>
+    </div>
+    <div class="radar-orbit">
+      <div class="radar-core"></div>
+      <div class="radar-ring ring-1"></div>
+      <div class="radar-ring ring-2"></div>
+      <div class="radar-ring ring-3"></div>
+      <div class="radar-marker marker-a"></div>
+      <div class="radar-marker marker-b"></div>
+      <div class="radar-marker marker-c"></div>
+    </div>
+    <div class="radar-footer">
+      <div>
+        <span>Snapshot</span>
+        <strong id="snapshot-date">{{ state.snapshot.date }}</strong>
+      </div>
+      <div>
+        <span>Predicted Rainfall</span>
+        <strong id="predicted-rainfall">{{ state.metrics.predicted_rainfall }} mm</strong>
+      </div>
+      <div>
+        <span>Predicted Tmax</span>
+        <strong id="predicted-tmax">{{ state.metrics.predicted_tmax }} C</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dashboard-grid">
+  <div class="glass-panel map-panel reveal delay-2">
+    <div class="panel-head">
+      <div>
+        <div class="section-label">Spatial View</div>
+        <h3>Interactive geospatial forecast</h3>
+      </div>
+      <div class="chip-row">
+        {% for region in state.pilot_regions %}
+        <button class="chip" data-region-switch="{{ region.name }}">{{ region.name }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    <div id="map" class="map-canvas"></div>
+  </div>
+
+  <aside class="side-stack">
+    <div class="glass-panel controls-panel reveal delay-3">
+      <div class="panel-head compact">
+        <div>
+          <div class="section-label">Scenario Lab</div>
+          <h3>What-if simulation</h3>
+        </div>
+      </div>
+      <label class="control">
+        <span>Rainfall change</span>
+        <input id="rainfall-slider" type="range" min="-40" max="60" value="0" />
+        <strong><span id="rainfall-value">0</span>%</strong>
+      </label>
+      <label class="control">
+        <span>Temperature change</span>
+        <input id="temp-slider" type="range" min="-4" max="6" value="0" step="0.1" />
+        <strong><span id="temp-value">0</span> C</strong>
+      </label>
+      <label class="control">
+        <span>Forecast horizon</span>
+        <input id="horizon-slider" type="range" min="3" max="30" value="14" />
+        <strong><span id="horizon-value">14</span> days</strong>
+      </label>
+      <button id="simulate-button" class="primary-button wide">Run simulation</button>
+    </div>
+
+    <div class="glass-panel data-panel reveal delay-4">
+      <div class="panel-head compact">
+        <div>
+          <div class="section-label">National Data</div>
+          <h3>Source stack</h3>
+        </div>
+      </div>
+      <div class="source-list">
+        {% for source in state.source_manifest %}
+        <article>
+          <span>{{ source.name }}</span>
+          <strong>{{ source.role }}</strong>
+          <p>{{ source.source }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+  </aside>
+</section>
+
+<section class="chart-grid">
+  <div class="glass-panel chart-panel reveal delay-2">
+    <div class="panel-head compact">
+      <div>
+        <div class="section-label">Temporal Forecast</div>
+        <h3>Rainfall and temperature trajectory</h3>
+      </div>
+    </div>
+    <canvas id="forecastChart"></canvas>
+  </div>
+
+  <div class="glass-panel chart-panel reveal delay-3">
+    <div class="panel-head compact">
+      <div>
+        <div class="section-label">Model Layer</div>
+        <h3>Performance snapshot</h3>
+      </div>
+    </div>
+    <div class="model-grid">
+      <div><span>Rainfall MAE</span><strong id="mae-rainfall">{{ state.model_metrics.mae_rainfall_mm | default(0) | round(2) }}</strong></div>
+      <div><span>Tmax MAE</span><strong id="mae-tmax">{{ state.model_metrics.mae_tmax_c | default(0) | round(2) }}</strong></div>
+      <div><span>Tmin MAE</span><strong id="mae-tmin">{{ state.model_metrics.mae_tmin_c | default(0) | round(2) }}</strong></div>
+    </div>
+    <div class="comparison-bars">
+      <div><i></i><span>PyTorch TwinNet</span></div>
+      <div><i class="alt"></i><span>Sequence-ready layer</span></div>
+      <div><i class="soft"></i><span>Scenario simulator</span></div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,9 +1,35 @@
-# sky-mirror-india 🌤️🧬
+# Sky Mirror India
 
-`sky-mirror-india` is an advanced, AI-driven digital twin framework designed to simulate, model, and predict the complex climate architecture of the Indian subcontinent. By ingestion of India's national meteorological datasets, the platform creates a high-fidelity "digital mirror" of the atmosphere to forecast weather anomalies, monsoon trajectories, and long-term climate shifts.
+An AI-powered digital twin of India's climate built with Flask, modern web visualization, and an extensible prediction stack for rainfall and temperature analysis.
 
-## Key Features
-* **Atmospheric Mirroring:** Real-time spatial and temporal synchronization with national climate grids.
-* **AI-Powered Forecasting:** Deep learning architectures optimized for chaotic tropical weather systems and monsoon tracking.
-* **High-Resolution Digital Twin:** Physics-informed neural networks (PINNs) that bridge the gap between traditional numerical weather prediction (NWP) and raw data.
-* **Subcontinental Focus:** Specifically tuned to handle the unique microclimates, diverse terrains, and oceanic influences of India.
+## What this scaffold includes
+
+* A Flask app factory with `/`, `/api/predict`, and `/health` endpoints.
+* A climate twin engine that generates pilot-region observations and trains a gradient boosting forecaster.
+* Scenario simulation controls for rainfall and temperature what-if analysis.
+* A custom dashboard with a modern glass UI, interactive map, and forecast charts.
+
+## Project structure
+
+* `app.py` - local entrypoint.
+* `climate_twin/` - Flask app, data generation, forecasting, and digital twin service layer.
+* `templates/` - HTML templates for the dashboard.
+* `static/` - CSS and client-side interactivity.
+* `tests/` - basic smoke tests for the app.
+
+## Run locally
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+flask --app app run --debug
+```
+
+## Data plan
+
+This scaffold is ready to ingest IMD and MOSDAC datasets for rainfall, max temperature, min temperature, INSAT LST, and SST. The current implementation uses deterministic demo data so the dashboard works immediately, and the service layer is structured to swap in real national datasets without changing the UI contract.
+
+## Model approach
+
+The default forecasting layer uses temporal feature engineering with `HistGradientBoostingRegressor` for a strong tabular baseline. The code is organized so a deep temporal model can be added later for sequence learning and ensemble forecasting.
