@@ -12,10 +12,10 @@
   --accent-3: #ffbf75;
   --danger: #ff7f9c;
   --shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
-  --radius-xl: 28px;
-  --radius-lg: 22px;
-  --radius-md: 16px;
-  --radius-sm: 12px;
+  --radius-xl: 18px;
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
 }
 
 * {
@@ -41,9 +41,9 @@ body {
 .shell {
   position: relative;
   z-index: 1;
-  width: min(1480px, calc(100vw - 40px));
+  width: min(1280px, calc(100vw - 32px));
   margin: 0 auto;
-  padding: 28px 0 40px;
+  padding: 18px 0 20px;
 }
 
 .ambient {
@@ -83,23 +83,23 @@ body {
 }
 
 .glass-panel {
-  background: linear-gradient(180deg, rgba(13, 24, 39, 0.88), rgba(8, 14, 24, 0.76));
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(22px);
-  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, rgba(12, 20, 34, 0.82), rgba(6, 12, 20, 0.72));
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  backdrop-filter: blur(10px) saturate(1.05);
+  border-radius: var(--radius-lg);
 }
 
 .hero-grid,
 .dashboard-grid,
 .chart-grid {
   display: grid;
-  gap: 20px;
+  gap: 12px;
 }
 
 .hero-grid {
-  grid-template-columns: 1.2fr 0.9fr;
-  margin-bottom: 20px;
+  grid-template-columns: 1.05fr 0.95fr;
+  margin-bottom: 12px;
 }
 
 .hero-copy,
@@ -108,7 +108,7 @@ body {
 .controls-panel,
 .data-panel,
 .chart-panel {
-  padding: 24px;
+  padding: 12px;
 }
 
 .eyebrow,
@@ -116,7 +116,7 @@ body {
   font-family: "IBM Plex Mono", monospace;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  font-size: 0.72rem;
+  font-size: 0.64rem;
   color: var(--accent);
 }
 
@@ -128,26 +128,28 @@ p {
 }
 
 h1 {
-  font-size: clamp(3rem, 6vw, 5.7rem);
-  line-height: 0.95;
-  letter-spacing: -0.05em;
-  max-width: 11ch;
-  margin-top: 18px;
+  font-size: clamp(1.6rem, 3.8vw, 2.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  max-width: 48ch;
+  margin-top: 8px;
+  color: #eaf6ff;
+  font-weight: 700;
 }
 
 .hero-text {
-  color: var(--muted);
-  max-width: 66ch;
-  margin-top: 18px;
-  font-size: 1.05rem;
-  line-height: 1.75;
+  color: rgba(146,168,199,0.9);
+  max-width: 60ch;
+  margin-top: 8px;
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 button {
@@ -165,16 +167,16 @@ button {
 .primary-button {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #04101a;
-  padding: 14px 18px;
+  padding: 8px 12px;
   border-radius: 999px;
   font-weight: 700;
 }
 
 .ghost-button {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.02);
   color: var(--text);
-  border-color: rgba(255, 255, 255, 0.08);
-  padding: 14px 18px;
+  border-color: rgba(255, 255, 255, 0.06);
+  padding: 10px 14px;
   border-radius: 999px;
 }
 
@@ -201,17 +203,17 @@ button {
 
 .hero-metrics {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 28px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .hero-metrics article,
 .model-grid div,
 .source-list article {
-  padding: 18px;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .hero-metrics span,
@@ -265,9 +267,9 @@ button {
 
 .radar-orbit {
   position: relative;
-  width: min(100%, 420px);
+  width: min(100%, 320px);
   aspect-ratio: 1;
-  margin: 24px auto;
+  margin: 10px auto;
 }
 
 .radar-core,
@@ -312,43 +314,62 @@ button {
 
 .dashboard-grid {
   grid-template-columns: 1.35fr 0.65fr;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .side-stack {
-  gap: 20px;
+  gap: 16px;
 }
 
 .panel-head.compact {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .map-canvas {
   width: 100%;
-  height: 560px;
-  border-radius: var(--radius-lg);
+  height: 460px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  margin-top: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .chip-row {
-  grid-template-columns: repeat(auto-fit, minmax(132px, auto));
-  gap: 10px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  max-width: min(100%, 760px);
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
 }
 
 .chip {
-  padding: 10px 12px;
+  padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.02);
   color: var(--text);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.source-list article {
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.source-list article:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+}
+
+.status-pill {
+  font-weight: 700;
 }
 
 .control {
   display: grid;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .control input[type="range"] {
@@ -366,6 +387,8 @@ button {
 
 .source-list {
   gap: 12px;
+  display: grid;
+  grid-template-columns: 1fr;
 }
 
 .source-list article strong {
@@ -376,9 +399,24 @@ button {
 }
 
 .source-list p {
-  margin-top: 10px;
-  line-height: 1.5;
+  margin-top: 8px;
+  line-height: 1.35;
   word-break: break-word;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+/* helper muted class for template use */
+.muted {
+  color: var(--muted) !important;
+  font-size: 0.92rem;
+}
+
+/* make the data-panel's source list scrollable if content is long */
+.data-panel .source-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
 .chart-grid {
@@ -387,43 +425,14 @@ button {
 
 .chart-panel canvas {
   width: 100% !important;
-  height: 380px !important;
-  margin-top: 18px;
+  height: 320px !important;
+  margin-top: 8px;
 }
 
 .model-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 18px;
-}
-
-.comparison-bars {
-  gap: 12px;
-  margin-top: 22px;
-}
-
-.comparison-bars div {
-  display: grid;
-  grid-template-columns: 80px 1fr;
-  align-items: center;
-  gap: 12px;
-}
-
-.comparison-bars i {
-  display: block;
-  height: 12px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
-}
-
-.comparison-bars i.alt {
-  background: linear-gradient(90deg, var(--accent-3), #ff7f9c);
-  width: 75%;
-}
-
-.comparison-bars i.soft {
-  background: linear-gradient(90deg, #91f2ff, #64f4d8);
-  width: 62%;
 }
 
 .reveal {
@@ -487,6 +496,10 @@ button {
   .panel-head,
   .radar-header {
     flex-direction: column;
+  }
+
+  .chip-row {
+    max-width: 100%;
   }
 
   .map-canvas {

@@ -10,6 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from climate_twin.data.imd_pipeline import PROCESSED_PATH, build_processed_training_table
 from climate_twin.data.loader import load_training_observations, save_processed_dataset
 from climate_twin.services.forecasting import ClimateForecaster
 
@@ -18,6 +19,9 @@ def main() -> int:
     project_root = PROJECT_ROOT
     models_dir = project_root / "models"
     models_dir.mkdir(parents=True, exist_ok=True)
+
+    if not PROCESSED_PATH.exists():
+        build_processed_training_table()
 
     observations, data_source = load_training_observations()
     save_processed_dataset(observations)

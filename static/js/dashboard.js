@@ -20,7 +20,6 @@
   const rainfallValue = document.getElementById("rainfall-value");
   const tempValue = document.getElementById("temp-value");
   const horizonValue = document.getElementById("horizon-value");
-  const simulateButton = document.getElementById("simulate-button");
 
   let selectedRegion = initialState.region || "Kerala Coast";
   let forecastChart = null;
@@ -168,9 +167,10 @@
               label: "Rainfall (mm)",
               data: rainfall,
               borderColor: palette.rain,
-              backgroundColor: "rgba(100, 244, 216, 0.14)",
+              backgroundColor: "rgba(100, 244, 216, 0.18)",
               fill: true,
               tension: 0.34,
+              yAxisID: 'y1',
             },
             {
               label: "Max Temp (C)",
@@ -196,6 +196,7 @@
           plugins: {
             legend: {
               labels: { color: palette.text, usePointStyle: true, pointStyle: "line" },
+              position: 'top',
             },
           },
           scales: {
@@ -204,8 +205,14 @@
               grid: { color: palette.grid },
             },
             y: {
+              position: 'left',
               ticks: { color: palette.text },
               grid: { color: palette.grid },
+            },
+            y1: {
+              position: 'right',
+              ticks: { color: palette.text },
+              grid: { display: false },
             },
           },
         },

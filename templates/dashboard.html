@@ -69,7 +69,7 @@
         <div class="section-label">Spatial View</div>
         <h3>Interactive geospatial forecast</h3>
       </div>
-      <div class="chip-row">
+      <div class="chip-row" aria-label="Pilot regions">
         {% for region in state.pilot_regions %}
         <button class="chip" data-region-switch="{{ region.name }}">{{ region.name }}</button>
         {% endfor %}
@@ -106,8 +106,8 @@
     <div class="glass-panel data-panel reveal delay-4">
       <div class="panel-head compact">
         <div>
-          <div class="section-label">National Data</div>
-          <h3>Source stack</h3>
+          <div class="section-label">Data Sources</div>
+          <h3>IMD-only (national gridded)</h3>
         </div>
       </div>
       <div class="source-list">
@@ -115,7 +115,7 @@
         <article>
           <span>{{ source.name }}</span>
           <strong>{{ source.role }}</strong>
-          <p>{{ source.source }}</p>
+          <p class="muted">{{ source.source }}</p>
         </article>
         {% endfor %}
       </div>
@@ -145,11 +145,6 @@
       <div><span>Rainfall MAE</span><strong id="mae-rainfall">{{ state.model_metrics.mae_rainfall_mm | default(0) | round(2) }}</strong></div>
       <div><span>Tmax MAE</span><strong id="mae-tmax">{{ state.model_metrics.mae_tmax_c | default(0) | round(2) }}</strong></div>
       <div><span>Tmin MAE</span><strong id="mae-tmin">{{ state.model_metrics.mae_tmin_c | default(0) | round(2) }}</strong></div>
-    </div>
-    <div class="comparison-bars">
-      <div><i></i><span>PyTorch TwinNet</span></div>
-      <div><i class="alt"></i><span>Sequence-ready layer</span></div>
-      <div><i class="soft"></i><span>Scenario simulator</span></div>
     </div>
   </div>
 </section>
