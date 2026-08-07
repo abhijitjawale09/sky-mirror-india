@@ -1,3 +1,15 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.DS_Store
+instance/
+.coverage
+htmlcov/
+*.pyc
+*.pyo
+*.pyd
+dist/
+build/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
