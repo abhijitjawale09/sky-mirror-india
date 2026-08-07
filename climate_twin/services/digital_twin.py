@@ -78,6 +78,11 @@ class DigitalTwinEngine:
 
     def _source_manifest(self) -> list[dict[str, str]]:
         return [
+            {
+                "name": "Processed IMD Fusion",
+                "source": "data/processed/climate_training_data.csv",
+                "role": "cached training table built from rainfall, max temp, and min temp CSVs",
+            },
             {"name": "IMD Gridded Rainfall", "source": "imdpune.gov.in/cmpg/Griddata/Rainfall_25_Bin.html", "role": "target variable and validation"},
             {"name": "IMD Maximum Temperature", "source": "imdpune.gov.in/cmpg/Griddata/Max_1_Bin.html", "role": "thermal profile modeling"},
             {"name": "IMD Minimum Temperature", "source": "imdpune.gov.in/cmpg/Griddata/Min_1_Bin.html", "role": "night-time thermal regime"},

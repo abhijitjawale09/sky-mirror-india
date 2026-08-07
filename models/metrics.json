@@ -1,0 +1,6 @@
+{
+  "data_source": "processed:data/processed/climate_training_data.csv",
+  "mae_rainfall_mm": 1.2489827528070225,
+  "mae_tmax_c": 0.7450695057950527,
+  "mae_tmin_c": 0.6114810153936496
+}

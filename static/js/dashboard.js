@@ -49,10 +49,21 @@
       horizonValue.textContent = horizonSlider.value;
     };
 
-    [rainfallSlider, tempSlider, horizonSlider].forEach((input) => input.addEventListener("input", syncLabels));
-    syncLabels();
+    const handleInput = () => {
+      syncLabels();
+    };
+    
+    const handleChange = () => {
+      syncLabels();
+      fetchPrediction();
+    };
 
-    simulateButton.addEventListener("click", () => fetchPrediction());
+    [rainfallSlider, tempSlider, horizonSlider].forEach((input) => {
+      input.addEventListener("input", handleInput);
+      input.addEventListener("change", handleChange);
+    });
+    
+    syncLabels();
   }
 
   function attachRegionButtons() {

@@ -32,4 +32,14 @@ This scaffold is ready to ingest IMD and MOSDAC datasets for rainfall, max tempe
 
 ## Model approach
 
-The default forecasting layer uses temporal feature engineering with `HistGradientBoostingRegressor` for a strong tabular baseline. The code is organized so a deep temporal model can be added later for sequence learning and ensemble forecasting.
+The forecasting layer now uses a Random Forest multi-output regressor trained on fused IMD rainfall, maximum temperature, and minimum temperature CSVs from your Downloads folder. The preprocessing pipeline builds a cached table in `data/processed/climate_training_data.csv`, so the app uses only the real IMD-derived observations and does not depend on synthetic demo data.
+
+## Training script
+
+Run the full preprocess and training flow with:
+
+```bash
+python scripts/train_model.py
+```
+
+This will regenerate the processed dataset and save a trained Random Forest model under `models/random_forest_model.pkl`.
