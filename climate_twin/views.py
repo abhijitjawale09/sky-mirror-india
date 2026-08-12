@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 
-from .services.digital_twin import TwinScenario
+from .services.digital_twin import DashboardMode
+from .services.twin_simulation import TwinScenario
 
 
 main_bp = Blueprint("main", __name__)
@@ -27,7 +28,12 @@ def predict() -> tuple[object, int]:
         horizon_days=max(3, min(int(payload.get("horizon_days", current_app.config["FORECAST_HORIZON_DAYS"])), 30)),
     )
     region = str(payload.get("region", current_app.config["PILOT_REGION"]))
-    return jsonify(engine.get_dashboard_state(region, scenario=scenario)), 200
+    mode = DashboardMode(
+        name=str(payload.get("mode", "live")),
+        replay_start=payload.get("replay_start"),
+        replay_end=payload.get("replay_end"),
+    )
+    return jsonify(engine.get_dashboard_state(region, scenario=scenario, mode=mode)), 200
 
 
 @main_bp.get("/health")
