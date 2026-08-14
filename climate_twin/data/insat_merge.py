@@ -13,11 +13,54 @@ import pandas as pd
 LOGGER = logging.getLogger(__name__)
 
 
+def extract_insat_to_csv(
+    insat_dir: str | Path,
+    output_path: str | Path,
+    target_latitudes: np.ndarray | None = None,
+    target_longitudes: np.ndarray | None = None,
+    value_name_hint: str = "LST",
+    years_back: int = 15,
+) -> pd.DataFrame:
+    """Extract INSAT L2B data into a daily CSV keyed by date, latitude, longitude."""
+
+    insat_dir = Path(insat_dir)
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    files = sorted(insat_dir.rglob("*.h5")) + sorted(insat_dir.rglob("*.H5"))
+    if not files:
+        raise FileNotFoundError(f"No INSAT HDF5 files were found under {insat_dir}")
+
+    years = _allowed_years_for_filter(years_back)
+    filtered_files = [path for path in files if _file_year_in_scope(path, years)]
+    if not filtered_files:
+        raise ValueError(f"No INSAT HDF5 files found in the last {years_back} years under {insat_dir}")
+
+    if target_latitudes is None or target_longitudes is None:
+        sample_table = build_insat_daily_table(insat_dir, np.asarray([0.0]), np.asarray([0.0]), value_name_hint=value_name_hint)
+        if sample_table.empty:
+            raise ValueError("Could not infer grid coordinates from INSAT files.")
+        target_latitudes = np.asarray(sorted(sample_table["latitude"].dropna().unique()))
+        target_longitudes = np.asarray(sorted(sample_table["longitude"].dropna().unique()))
+
+    extracted = build_insat_daily_table(
+        insat_dir,
+        np.asarray(target_latitudes),
+        np.asarray(target_longitudes),
+        value_name_hint=value_name_hint,
+        files_to_use=filtered_files,
+    )
+    extracted.to_csv(output_file, index=False)
+    LOGGER.info("Wrote extracted INSAT table to %s with %s rows", output_file, len(extracted))
+    return extracted
+
+
 def merge_insat_with_imd(
     imd_frame: pd.DataFrame,
     insat_dir: str | Path,
     output_path: str | Path | None = None,
     value_name_hint: str = "LST",
+    years_back: int = 15,
 ) -> pd.DataFrame:
     """Merge INSAT L2B surface temperature onto an IMD fused daily dataframe.
 
@@ -69,15 +112,28 @@ def merge_insat_with_imd(
     return merged
 
 
+def _allowed_years_for_filter(years_back: int) -> set[int]:
+    current_year = pd.Timestamp.utcnow().year
+    return set(range(current_year - years_back + 1, current_year + 1))
+
+
+def _file_year_in_scope(file_path: Path, allowed_years: set[int]) -> bool:
+    for year in sorted(allowed_years):
+        if str(year) in file_path.name:
+            return True
+    return False
+
+
 def build_insat_daily_table(
     insat_dir: Path,
     target_latitudes: np.ndarray,
     target_longitudes: np.ndarray,
     value_name_hint: str = "LST",
+    files_to_use: list[Path] | None = None,
 ) -> pd.DataFrame:
     """Read all INSAT HDF5 files in a folder and aggregate to a daily lat/lon table."""
 
-    files = sorted(insat_dir.rglob("*.h5")) + sorted(insat_dir.rglob("*.H5"))
+    files = files_to_use if files_to_use is not None else sorted(insat_dir.rglob("*.h5")) + sorted(insat_dir.rglob("*.H5"))
     if not files:
         LOGGER.warning("No INSAT .h5 files were found under %s", insat_dir)
         return pd.DataFrame(columns=["date", "latitude", "longitude", "insat_lst_c"])

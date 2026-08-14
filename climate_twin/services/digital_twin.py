@@ -6,6 +6,7 @@ import pandas as pd
 
 from ..data.loader import REGION_PROFILES, get_region_profile, latest_snapshot, load_training_observations
 from .forecasting import ClimateForecaster
+from .real_time_conditions import RealTimeConditions
 from .twin_simulation import TwinScenario, build_replay_result, build_simulation_result
 from .twin_state import build_twin_state
 
@@ -26,6 +27,7 @@ class DigitalTwinEngine:
         self.observations, self.data_source = load_training_observations()
         self.forecaster = ClimateForecaster()
         self.metrics = self.forecaster.fit(self.observations)
+        self.real_time_conditions = RealTimeConditions(self.observations)
 
     def get_dashboard_state(
         self,
@@ -48,6 +50,26 @@ class DigitalTwinEngine:
             temp_delta_c=scenario.temp_delta_c,
         )
         simulation = build_simulation_result(self.forecaster, region_history, scenario)
+        current_conditions = self.real_time_conditions.get_current_state(profile.name)
+        current_risk = self.real_time_conditions.get_risk_level(current_conditions)
+        current_precautions = self.real_time_conditions.get_precautions(
+            current_risk["risk_level"],
+            {
+                "rainfall_delta_pct": scenario.rainfall_delta_pct,
+                "temp_delta_c": scenario.temp_delta_c,
+                "predicted_rainfall": float(forecast["rainfall_mm"].mean()) if not forecast.empty else 0.0,
+                "predicted_tmax": float(forecast["tmax_c"].mean()) if not forecast.empty else 0.0,
+            },
+        )
+        scenario_precautions = self.real_time_conditions.get_precautions(
+            current_risk["risk_level"],
+            {
+                "rainfall_delta_pct": scenario.rainfall_delta_pct,
+                "temp_delta_c": scenario.temp_delta_c,
+                "predicted_rainfall": float(forecast["rainfall_mm"].mean()) if not forecast.empty else 0.0,
+                "predicted_tmax": float(forecast["tmax_c"].mean()) if not forecast.empty else 0.0,
+            },
+        )
         replay = None
         if mode.name == "replay" and mode.replay_start and mode.replay_end:
             replay = build_replay_result(self.forecaster, region_history, mode.replay_start, mode.replay_end)
@@ -73,6 +95,18 @@ class DigitalTwinEngine:
                 "rainfall": "ml_forecast",
                 "tmax": "ml_forecast",
                 "tmin": "ml_forecast",
+            },
+            "real_time_conditions": {
+                "current_state": current_conditions,
+                "risk_level": current_risk,
+                "precautions": current_precautions,
+                "scenario_precautions": scenario_precautions,
+            },
+            "real_time_conditions_basis": {
+                "current_state": "observed + climatological_probability + rule_derived",
+                "risk_level": "rule_based",
+                "precautions": "rule_based",
+                "scenario_precautions": "rule_based",
             },
             "time_series": self._build_time_series(region_history, forecast),
             "time_series_basis": {"observed": "observed", "forecast": "ml_forecast"},
