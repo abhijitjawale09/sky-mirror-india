@@ -1,0 +1,137 @@
+{
+  "source_file": "data\\fused\\imd_insat_fused.csv",
+  "rows_before": 5117,
+  "rows_after": 5117,
+  "missing_before": {
+    "observation_date": {
+      "missing_before": 0,
+      "missing_pct_before": 0.0,
+      "valid_before": 5117
+    },
+    "latitude_deg": {
+      "missing_before": 0,
+      "missing_pct_before": 0.0,
+      "valid_before": 5117
+    },
+    "longitude_deg": {
+      "missing_before": 0,
+      "missing_pct_before": 0.0,
+      "valid_before": 5117
+    },
+    "imd_rainfall_mm": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "imd_max_temperature_C": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "imd_min_temperature_C": {
+      "missing_before": 0,
+      "missing_pct_before": 0.0,
+      "valid_before": 5117
+    },
+    "insat_lst_mean_K": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "insat_lst_min_K": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "insat_lst_max_K": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "insat_rainfall_daily_mm": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "insat_sst_mean_K": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    }
+  },
+  "missing_after": {
+    "observation_date": {
+      "missing_before": 0,
+      "missing_pct_before": 0.0,
+      "valid_before": 5117
+    },
+    "latitude_deg": {
+      "missing_before": 0,
+      "missing_pct_before": 0.0,
+      "valid_before": 5117
+    },
+    "longitude_deg": {
+      "missing_before": 0,
+      "missing_pct_before": 0.0,
+      "valid_before": 5117
+    },
+    "imd_rainfall_mm": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "imd_max_temperature_C": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "imd_min_temperature_C": {
+      "missing_before": 0,
+      "missing_pct_before": 0.0,
+      "valid_before": 5117
+    },
+    "insat_lst_mean_K": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "insat_lst_min_K": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "insat_lst_max_K": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "insat_rainfall_daily_mm": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    },
+    "insat_sst_mean_K": {
+      "missing_before": 5117,
+      "missing_pct_before": 100.0,
+      "valid_before": 0
+    }
+  },
+  "method_used": {
+    "temperature": "time-based interpolation within the same latitude/longitude grid cell for short gaps only",
+    "rainfall": "no blind mean replacement; missing rainfall values preserved unless source metadata confirms zero rainfall",
+    "sst": "no SST values created over land; valid ocean pixels only; missing values preserved when no valid ocean pixel exists"
+  },
+  "filled_values": {
+    "observation_date": 0,
+    "latitude_deg": 0,
+    "longitude_deg": 0,
+    "imd_rainfall_mm": 0,
+    "imd_max_temperature_C": 0,
+    "imd_min_temperature_C": 0,
+    "insat_lst_mean_K": 0,
+    "insat_lst_min_K": 0,
+    "insat_lst_max_K": 0,
+    "insat_rainfall_daily_mm": 0,
+    "insat_sst_mean_K": 0
+  }
+}

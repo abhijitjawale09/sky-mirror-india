@@ -1,0 +1,103 @@
+{
+  "imd_files": [
+    "data\\raw\\imd\\climate_observations.csv",
+    "data\\raw\\imd_15y\\rainfall\\csv\\rainfall_2024.csv",
+    "data\\raw\\imd_15y\\rainfall\\csv\\rainfall_2025.csv",
+    "data\\raw\\imd_15y\\tmax\\csv\\tmax_2024.csv",
+    "data\\raw\\imd_15y\\tmax\\csv\\tmax_2025.csv",
+    "data\\raw\\imd_15y\\tmin\\csv\\tmin_2024.csv",
+    "data\\raw\\imd_15y\\tmin\\csv\\tmin_2025.csv"
+  ],
+  "insat_files": [
+    "data\\raw\\insat\\INSAT3DR_Climate_Digital_Twin_Core_Data_2022_FIXED.csv",
+    "data\\raw\\insat\\INSAT3DR_Climate_Digital_Twin_Core_Data_2023_FIXED.csv",
+    "data\\raw\\insat\\INSAT3DR_Climate_Digital_Twin_Core_Data_2024_2025 (1).csv",
+    "data\\raw\\insat\\INSAT3DR_Climate_Digital_Twin_Core_Data_merged.csv"
+  ],
+  "validation": {
+    "total_rows": 5117,
+    "date_range": [
+      "2024-01-01",
+      "2025-12-31"
+    ],
+    "latitude_range": [
+      9.5,
+      27.0
+    ],
+    "longitude_range": [
+      73.0,
+      91.75
+    ],
+    "unique_dates": 731,
+    "unique_grid_cells": 7,
+    "duplicate_key_rows": 0,
+    "matched_insat_rows": 0,
+    "unmatched_imd_rows": 5117,
+    "imd_rainfall_mm": {
+      "valid": 0,
+      "missing": 5117,
+      "missing_pct": 100.0,
+      "min": null,
+      "max": null,
+      "mean": null
+    },
+    "imd_max_temperature_C": {
+      "valid": 0,
+      "missing": 5117,
+      "missing_pct": 100.0,
+      "min": null,
+      "max": null,
+      "mean": null
+    },
+    "imd_min_temperature_C": {
+      "valid": 5117,
+      "missing": 0,
+      "missing_pct": 0.0,
+      "min": 4.283445358276367,
+      "max": 32.53441619873047,
+      "mean": 20.71802355764619
+    },
+    "insat_lst_mean_K": {
+      "valid": 0,
+      "missing": 5117,
+      "missing_pct": 100.0,
+      "min": null,
+      "max": null,
+      "mean": null
+    },
+    "insat_lst_min_K": {
+      "valid": 0,
+      "missing": 5117,
+      "missing_pct": 100.0,
+      "min": null,
+      "max": null,
+      "mean": null
+    },
+    "insat_lst_max_K": {
+      "valid": 0,
+      "missing": 5117,
+      "missing_pct": 100.0,
+      "min": null,
+      "max": null,
+      "mean": null
+    },
+    "insat_rainfall_daily_mm": {
+      "valid": 0,
+      "missing": 5117,
+      "missing_pct": 100.0,
+      "min": null,
+      "max": null,
+      "mean": null
+    },
+    "insat_sst_mean_K": {
+      "valid": 0,
+      "missing": 5117,
+      "missing_pct": 100.0,
+      "min": null,
+      "max": null,
+      "mean": null
+    }
+  },
+  "strict_overlap_rows": 0,
+  "strict_overlap_file": "data\\fused\\imd_insat_fused_matched_only.csv"
+}
