@@ -52,9 +52,13 @@
         {% endfor %}
       </select>
     </div>
-    <div class="status-indicator">
+    <button id="live-sync-btn" class="live-sync-button" title="Sync live real-time stream for today">
+      <span class="sync-icon">🔄</span>
+      <span class="sync-label">Sync Live Feed</span>
+    </button>
+    <div class="status-indicator live-stream-indicator" title="Connected to High-Resolution Live Real-Time Weather Stream">
       <span class="live-pulse"></span>
-      <span class="status-text">LIVE POC</span>
+      <span id="live-status-text" class="status-text">LIVE STREAM ACTIVE</span>
     </div>
   </div>
 </header>

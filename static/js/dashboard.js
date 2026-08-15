@@ -85,6 +85,10 @@
     grid: "rgba(255, 255, 255, 0.06)",
   };
 
+  // Live Sync Elements
+  const liveSyncBtn = document.getElementById("live-sync-btn");
+  const liveStatusText = document.getElementById("live-status-text");
+
   // Bootstrap Application
   function bootstrap() {
     initTabs();
@@ -96,6 +100,32 @@
     attachRegionButtons();
     attachPresetChips();
     attachReplayHandler();
+    attachLiveSyncHandler();
+  }
+
+  function attachLiveSyncHandler() {
+    if (!liveSyncBtn) return;
+    liveSyncBtn.addEventListener("click", async () => {
+      liveSyncBtn.classList.add("syncing");
+      if (liveStatusText) liveStatusText.textContent = "SYNCING STREAM...";
+      try {
+        const response = await fetch(`/api/live-sync?region=${encodeURIComponent(selectedRegion)}`, {
+          method: "POST",
+        });
+        if (!response.ok) throw new Error("Sync failed");
+        const data = await response.json();
+        if (data.state) {
+          currentState = data.state;
+          updateDashboard(data.state);
+        }
+        if (liveStatusText) liveStatusText.textContent = "LIVE STREAM ACTIVE";
+      } catch (err) {
+        console.error("Live sync failed:", err);
+        if (liveStatusText) liveStatusText.textContent = "LIVE STREAM (CACHED)";
+      } finally {
+        liveSyncBtn.classList.remove("syncing");
+      }
+    });
   }
 
   // Tab Manager

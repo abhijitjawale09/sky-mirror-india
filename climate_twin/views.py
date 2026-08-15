@@ -36,6 +36,23 @@ def predict() -> tuple[object, int]:
     return jsonify(engine.get_dashboard_state(region, scenario=scenario, mode=mode)), 200
 
 
+@main_bp.post("/api/live-sync")
+def live_sync() -> tuple[object, int]:
+    """Trigger an on-demand real-time weather stream sync for today."""
+    engine = current_app.extensions["digital_twin_engine"]
+    sync_result = engine.sync_live_feed()
+    region = request.args.get("region", current_app.config["PILOT_REGION"])
+    state = engine.get_dashboard_state(region)
+    return jsonify({
+        "status": sync_result.status,
+        "synced_at": sync_result.synced_at,
+        "latest_date": sync_result.latest_date,
+        "records_count": sync_result.records_count,
+        "latency_ms": sync_result.latency_ms,
+        "state": state,
+    }), 200
+
+
 @main_bp.post("/api/replay")
 def replay() -> tuple[object, int]:
     payload = request.get_json(force=True, silent=True) or {}

@@ -1,0 +1,17 @@
+{
+  "status": "success",
+  "synced_at": "2026-08-15 16:13:41 IST",
+  "records_count": 56,
+  "latest_date": "2026-08-15",
+  "regions_synced": [
+    "Kerala Coast",
+    "Indo-Gangetic Plain",
+    "Northeast",
+    "Central India",
+    "Deccan Plateau",
+    "Rajasthan Desert",
+    "Coastal Odisha"
+  ],
+  "source": "Open-Meteo High-Resolution Real-Time Stream",
+  "latency_ms": 4799.6
+}

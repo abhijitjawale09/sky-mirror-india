@@ -241,6 +241,38 @@ html, body {
   color: var(--green);
 }
 
+.live-sync-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 245, 212, 0.12);
+  border: 1px solid rgba(0, 245, 212, 0.35);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  color: var(--cyan);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.live-sync-button:hover {
+  background: rgba(0, 245, 212, 0.22);
+  transform: translateY(-1px);
+  box-shadow: 0 0 12px var(--cyan-glow);
+}
+
+.live-sync-button.syncing .sync-icon {
+  display: inline-block;
+  animation: sync-spin 0.8s linear infinite;
+}
+
+@keyframes sync-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .live-pulse {
   width: 6px;
   height: 6px;
