@@ -15,6 +15,7 @@ FUSED_DIR = PROJECT_ROOT / "data" / "fused"
 FEATURES_DIR = PROJECT_ROOT / "data" / "features"
 
 COMMON_GRID_STEP = 0.25
+MAX_SPATIAL_TOLERANCE_DEG = 0.3
 
 
 def list_imd_files() -> list[Path]:
@@ -276,10 +277,42 @@ def aggregate_insat_daily(insat_frame: pd.DataFrame) -> pd.DataFrame:
     return grouped.reset_index(drop=True)
 
 
-def merge_imd_insat(imd_frame: pd.DataFrame, insat_frame: pd.DataFrame) -> pd.DataFrame:
-    """Merge IMD daily grid cells with daily INSAT values using date + lat/lon.
+def _build_nearest_neighbor_mapping(
+    imd_lats: np.ndarray,
+    imd_lons: np.ndarray,
+    insat_lats: np.ndarray,
+    insat_lons: np.ndarray,
+    max_distance_deg: float = MAX_SPATIAL_TOLERANCE_DEG,
+) -> dict[tuple[float, float], tuple[float, float]]:
+    """Map each IMD (lat, lon) to the nearest INSAT grid cell within tolerance.
 
-    Data are matched on the harmonized daily key, not on raw row number or a blind exact timestamp join.
+    Returns a dict of {(imd_lat, imd_lon): (insat_lat, insat_lon)} for stations
+    that have a nearby INSAT cell.  Stations beyond *max_distance_deg* are omitted.
+    """
+    mapping: dict[tuple[float, float], tuple[float, float]] = {}
+    imd_points = np.array(list({(float(lat), float(lon)) for lat, lon in zip(imd_lats, imd_lons)}))
+    insat_grid = np.array([(float(lat), float(lon)) for lat in np.unique(insat_lats) for lon in np.unique(insat_lons)])
+
+    if insat_grid.size == 0 or imd_points.size == 0:
+        return mapping
+
+    for point in imd_points:
+        distances = np.sqrt(np.sum((insat_grid - point) ** 2, axis=1))
+        nearest_idx = int(np.argmin(distances))
+        if distances[nearest_idx] <= max_distance_deg:
+            mapping[(point[0], point[1])] = (insat_grid[nearest_idx][0], insat_grid[nearest_idx][1])
+
+    return mapping
+
+
+def merge_imd_insat(imd_frame: pd.DataFrame, insat_frame: pd.DataFrame) -> pd.DataFrame:
+    """Merge IMD daily grid cells with daily INSAT values using nearest-neighbor
+    spatial matching and date alignment.
+
+    Because the IMD station grid and the INSAT satellite grid rarely share exact
+    coordinates, each IMD station is mapped to the closest INSAT grid cell within
+    MAX_SPATIAL_TOLERANCE_DEG (~0.3°, ~33 km).  Stations outside the INSAT
+    footprint correctly receive NaN for all INSAT columns.
     """
     imd = harmonize_time(imd_frame, "observation_date").copy()
     imd = harmonize_spatial_grid(imd, "latitude_deg", "longitude_deg")
@@ -292,36 +325,47 @@ def merge_imd_insat(imd_frame: pd.DataFrame, insat_frame: pd.DataFrame) -> pd.Da
         "imd_min_temperature_C": "mean",
     })
 
+    # Build spatial mapping: IMD station → nearest INSAT grid cell
+    nn_map = _build_nearest_neighbor_mapping(
+        imd["latitude_deg"].to_numpy(),
+        imd["longitude_deg"].to_numpy(),
+        insat["latitude_deg"].to_numpy(),
+        insat["longitude_deg"].to_numpy(),
+    )
+
+    # Add temporary columns with the mapped INSAT coordinates for joining
+    imd["_insat_lat"] = imd.apply(
+        lambda row: nn_map.get((row["latitude_deg"], row["longitude_deg"]), (np.nan, np.nan))[0], axis=1
+    )
+    imd["_insat_lon"] = imd.apply(
+        lambda row: nn_map.get((row["latitude_deg"], row["longitude_deg"]), (np.nan, np.nan))[1], axis=1
+    )
+
+    # Rename INSAT coords to the temporary names for the join
+    insat = insat.rename(columns={"latitude_deg": "_insat_lat", "longitude_deg": "_insat_lon"})
+
     fused = imd.merge(
         insat,
-        on=["observation_date", "latitude_deg", "longitude_deg"],
+        on=["observation_date", "_insat_lat", "_insat_lon"],
         how="left",
     )
 
-    fused = fused.rename(columns={
-        "observation_date": "observation_date",
-        "latitude_deg": "latitude_deg",
-        "longitude_deg": "longitude_deg",
-    })
+    # Drop temporary join columns
+    fused = fused.drop(columns=["_insat_lat", "_insat_lon"])
 
-    if "imd_max_temperature_C" in fused.columns:
-        fused["imd_max_temperature_C"] = pd.to_numeric(fused["imd_max_temperature_C"], errors="coerce")
-    if "imd_min_temperature_C" in fused.columns:
-        fused["imd_min_temperature_C"] = pd.to_numeric(fused["imd_min_temperature_C"], errors="coerce")
-    if "insat_lst_mean_K" in fused.columns:
-        fused["insat_lst_mean_K"] = pd.to_numeric(fused["insat_lst_mean_K"], errors="coerce")
-    if "insat_sst_mean_K" in fused.columns:
-        fused["insat_sst_mean_K"] = pd.to_numeric(fused["insat_sst_mean_K"], errors="coerce")
-    if "insat_rainfall_daily_mm" in fused.columns:
-        fused["insat_rainfall_daily_mm"] = pd.to_numeric(fused["insat_rainfall_daily_mm"], errors="coerce")
+    for col in ["imd_max_temperature_C", "imd_min_temperature_C",
+                "insat_lst_mean_K", "insat_sst_mean_K", "insat_rainfall_daily_mm"]:
+        if col in fused.columns:
+            fused[col] = pd.to_numeric(fused[col], errors="coerce")
 
     return fused.sort_values(["observation_date", "latitude_deg", "longitude_deg"]).reset_index(drop=True)
 
 
 def build_matched_overlap_dataset(imd_frame: pd.DataFrame, insat_frame: pd.DataFrame, output_path: str | Path | None = None) -> pd.DataFrame:
-    """Return only rows with a real IMD/INSAT overlap on date + latitude + longitude.
+    """Return only rows with a real IMD/INSAT overlap on date + nearest spatial match.
 
     This intentionally excludes all unmatched rows instead of fabricating values.
+    Uses the same nearest-neighbor spatial matching as merge_imd_insat().
     """
     imd = harmonize_time(imd_frame, "observation_date").copy()
     imd = harmonize_spatial_grid(imd, "latitude_deg", "longitude_deg")
@@ -332,11 +376,33 @@ def build_matched_overlap_dataset(imd_frame: pd.DataFrame, insat_frame: pd.DataF
     })
 
     insat = aggregate_insat_daily(insat_frame)
-    matched = imd.merge(
+
+    # Build spatial mapping
+    nn_map = _build_nearest_neighbor_mapping(
+        imd["latitude_deg"].to_numpy(),
+        imd["longitude_deg"].to_numpy(),
+        insat["latitude_deg"].to_numpy(),
+        insat["longitude_deg"].to_numpy(),
+    )
+
+    imd["_insat_lat"] = imd.apply(
+        lambda row: nn_map.get((row["latitude_deg"], row["longitude_deg"]), (np.nan, np.nan))[0], axis=1
+    )
+    imd["_insat_lon"] = imd.apply(
+        lambda row: nn_map.get((row["latitude_deg"], row["longitude_deg"]), (np.nan, np.nan))[1], axis=1
+    )
+
+    # Only keep IMD rows that have a valid spatial match
+    imd_matched = imd.dropna(subset=["_insat_lat", "_insat_lon"]).copy()
+
+    insat = insat.rename(columns={"latitude_deg": "_insat_lat", "longitude_deg": "_insat_lon"})
+
+    matched = imd_matched.merge(
         insat,
-        on=["observation_date", "latitude_deg", "longitude_deg"],
+        on=["observation_date", "_insat_lat", "_insat_lon"],
         how="inner",
     )
+    matched = matched.drop(columns=["_insat_lat", "_insat_lon"])
     matched = matched.sort_values(["observation_date", "latitude_deg", "longitude_deg"]).reset_index(drop=True)
 
     if output_path is not None:

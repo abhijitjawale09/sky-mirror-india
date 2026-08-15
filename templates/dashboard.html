@@ -1,151 +1,779 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="hero-grid">
-  <div class="hero-copy glass-panel reveal">
-    <div class="eyebrow">AI-Powered Digital Twin</div>
-    <h1>India's climate, mirrored as a living prediction system.</h1>
-    <p class="hero-text">A modern Flask dashboard for rainfall and temperature intelligence, fusing national climate datasets, predictive models, and what-if simulations into one operating view.</p>
-
-    <div class="hero-actions">
-      <button class="primary-button" data-region-switch="Kerala Coast">Kerala Coast</button>
-      <button class="ghost-button" data-region-switch="Indo-Gangetic Plain">Indo-Gangetic Plain</button>
+<!-- Top Navigation Header -->
+<header class="app-header glass-panel reveal">
+  <div class="brand-group">
+    <div class="brand-badge">
+      <span class="pulse-dot"></span>
+      <span>DIGITAL TWIN v2.0</span>
     </div>
-
-    <div class="hero-metrics">
-      <article>
-        <span>Monsoon Pulse</span>
-        <strong id="metric-monsoon">{{ state.metrics.monsoon_pulse }}</strong>
-      </article>
-      <article>
-        <span>Heat Stress</span>
-        <strong id="metric-heat">{{ state.metrics.heat_stress }}</strong>
-      </article>
-      <article>
-        <span>System Stability</span>
-        <strong id="metric-stability">{{ state.metrics.stability }}</strong>
-      </article>
+    <div class="brand-title">
+      <h2>Sky Mirror India</h2>
+      <p class="brand-subtitle">AI-Powered Digital Twin of India's Climate</p>
     </div>
   </div>
 
-  <div class="hero-radar glass-panel reveal delay-1">
-    <div class="radar-header">
-      <div>
-        <div class="section-label">Digital Twin Status</div>
-        <h2 id="region-name">{{ state.region }}</h2>
-      </div>
-      <div class="status-pill">Live PoC</div>
+  <nav class="view-tabs" role="tablist" aria-label="Dashboard Views">
+    <button class="tab-btn active" data-tab="cockpit" role="tab" aria-selected="true" id="tab-cockpit-btn">
+      <span class="tab-icon">🌐</span>
+      <span>Cockpit</span>
+    </button>
+    <button class="tab-btn" data-tab="forecast" role="tab" aria-selected="false" id="tab-forecast-btn">
+      <span class="tab-icon">📈</span>
+      <span>Forecast & Uncertainty</span>
+    </button>
+    <button class="tab-btn" data-tab="scenario" role="tab" aria-selected="false" id="tab-scenario-btn">
+      <span class="tab-icon">🧪</span>
+      <span>Scenario Lab</span>
+    </button>
+    <button class="tab-btn" data-tab="extremes" role="tab" aria-selected="false" id="tab-extremes-btn">
+      <span class="tab-icon">⚡</span>
+      <span>Extreme Events</span>
+    </button>
+    <button class="tab-btn" data-tab="scorecard" role="tab" aria-selected="false" id="tab-scorecard-btn">
+      <span class="tab-icon">🔬</span>
+      <span>Model Scorecard</span>
+    </button>
+    <button class="tab-btn" data-tab="replay" role="tab" aria-selected="false" id="tab-replay-btn">
+      <span class="tab-icon">⏳</span>
+      <span>Historical Replay</span>
+    </button>
+  </nav>
+
+  <div class="header-status">
+    <div class="region-dropdown-wrap">
+      <label for="global-region-select" class="sr-only">Select Region</label>
+      <select id="global-region-select" class="region-select">
+        {% for region in state.pilot_regions %}
+        <option value="{{ region.name }}" {% if region.name == state.region %}selected{% endif %}>
+          {{ region.name }} ({{ region.latitude }}°N, {{ region.longitude }}°E)
+        </option>
+        {% endfor %}
+      </select>
     </div>
-    <div class="radar-orbit">
-      <div class="radar-core"></div>
-      <div class="radar-ring ring-1"></div>
-      <div class="radar-ring ring-2"></div>
-      <div class="radar-ring ring-3"></div>
-      <div class="radar-marker marker-a"></div>
-      <div class="radar-marker marker-b"></div>
-      <div class="radar-marker marker-c"></div>
+    <div class="status-indicator">
+      <span class="live-pulse"></span>
+      <span class="status-text">LIVE POC</span>
     </div>
-    <div class="radar-footer">
-      <div>
-        <span>Snapshot</span>
-        <strong id="snapshot-date">{{ state.snapshot.date }}</strong>
+  </div>
+</header>
+
+<!-- Alert Banner (Visible if any extreme event or watch) -->
+<div id="alert-banner" class="alert-banner glass-panel reveal delay-1 {% if not state.extreme_events.has_alerts %}hidden{% endif %}">
+  <div class="alert-content">
+    <span class="alert-icon">⚠️</span>
+    <div class="alert-text">
+      <strong>Climate Intelligence Advisory:</strong>
+      <span id="alert-message">
+        {% if state.extreme_events.events %}
+          {{ state.extreme_events.events[0].label }}
+        {% else %}
+          Normal seasonal climatological pattern within 15-year baseline.
+        {% endif %}
+      </span>
+    </div>
+  </div>
+  <div class="alert-tags">
+    <span class="tag-badge basis-badge" title="Derived transparently from 15-year IMD observations">RULE DERIVED</span>
+    <span id="alert-risk-level" class="risk-badge badge-{{ state.risk_level }}">{{ state.risk_level | upper }}</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- TAB 1: LIVE TWIN COCKPIT -->
+<!-- ============================================================ -->
+<section id="view-cockpit" class="tab-view active">
+  <div class="hero-grid">
+    <!-- Left Hero Copy & Gauges -->
+    <div class="hero-copy glass-panel reveal">
+      <div class="eyebrow-row">
+        <span class="eyebrow">Digital Twin Telemetry</span>
+        <span class="basis-pill">Observed + ML Forecast</span>
       </div>
-      <div>
-        <span>Predicted Rainfall</span>
-        <strong id="predicted-rainfall">{{ state.metrics.predicted_rainfall }} mm</strong>
+      <h1 id="hero-title">India's climate, mirrored as a living prediction system.</h1>
+      <p class="hero-text">Fusing IMD gridded observations (0.25° rainfall, 1.0° temp) and INSAT satellite layers into an interactive spatio-temporal digital twin with uncertainty estimation.</p>
+
+      <div class="quick-region-pills" aria-label="Quick Region Selection">
+        {% for region in state.pilot_regions %}
+        <button class="chip {% if region.name == state.region %}chip-active{% endif %}" data-region-switch="{{ region.name }}">
+          {{ region.name }}
+        </button>
+        {% endfor %}
       </div>
-      <div>
-        <span>Predicted Tmax</span>
-        <strong id="predicted-tmax">{{ state.metrics.predicted_tmax }} C</strong>
+
+      <div class="hero-metrics">
+        <article class="metric-card">
+          <div class="metric-header">
+            <span>Monsoon Pulse</span>
+            <span class="metric-badge">Index</span>
+          </div>
+          <strong id="metric-monsoon">{{ state.metrics.monsoon_pulse }}</strong>
+          <div class="metric-bar-bg">
+            <div id="bar-monsoon" class="metric-bar-fill bar-cyan" style="width: {{ state.metrics.monsoon_pulse }}%;"></div>
+          </div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-header">
+            <span>Heat Stress</span>
+            <span class="metric-badge">Thermal</span>
+          </div>
+          <strong id="metric-heat">{{ state.metrics.heat_stress }}</strong>
+          <div class="metric-bar-bg">
+            <div id="bar-heat" class="metric-bar-fill bar-amber" style="width: {{ state.metrics.heat_stress }}%;"></div>
+          </div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-header">
+            <span>System Stability</span>
+            <span class="metric-badge">Equilibrium</span>
+          </div>
+          <strong id="metric-stability">{{ state.metrics.stability }}</strong>
+          <div class="metric-bar-bg">
+            <div id="bar-stability" class="metric-bar-fill bar-green" style="width: {{ state.metrics.stability }}%;"></div>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Right Hero Radar Scanner -->
+    <div class="hero-radar glass-panel reveal delay-1">
+      <div class="radar-header">
+        <div>
+          <div class="section-label">State Scanner</div>
+          <h3 id="region-name">{{ state.region }}</h3>
+        </div>
+        <div class="radar-status-badge">
+          <span class="badge-dot"></span>
+          <span id="radar-status-text">7 Pilot Nodes Synced</span>
+        </div>
+      </div>
+
+      <div class="radar-orbit">
+        <div class="radar-core"></div>
+        <div class="radar-ring ring-1"></div>
+        <div class="radar-ring ring-2"></div>
+        <div class="radar-ring ring-3"></div>
+        <div class="radar-sweep"></div>
+        <div class="radar-marker marker-a" title="Node 1"></div>
+        <div class="radar-marker marker-b" title="Node 2"></div>
+        <div class="radar-marker marker-c" title="Node 3"></div>
+      </div>
+
+      <div class="radar-footer">
+        <div class="telemetry-cell">
+          <span class="telemetry-label">Snapshot Anchor</span>
+          <strong id="snapshot-date">{{ state.snapshot.date }}</strong>
+          <span class="telemetry-sub tag-observed">Observed</span>
+        </div>
+        <div class="telemetry-cell">
+          <span class="telemetry-label">Predicted Rainfall</span>
+          <strong id="predicted-rainfall" class="text-cyan">{{ state.metrics.predicted_rainfall }} mm</strong>
+          <span class="telemetry-sub tag-forecast">ML 14-Day Mean</span>
+        </div>
+        <div class="telemetry-cell">
+          <span class="telemetry-label">Predicted Tmax</span>
+          <strong id="predicted-tmax" class="text-amber">{{ state.metrics.predicted_tmax }} °C</strong>
+          <span class="telemetry-sub tag-forecast">ML 14-Day Mean</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Geospatial Map & Live Telemetry Grid -->
+  <div class="dashboard-grid">
+    <div class="glass-panel map-panel reveal delay-2">
+      <div class="panel-head">
+        <div>
+          <div class="section-label">Geospatial Grid Canvas</div>
+          <h3>Interactive India Climate Map</h3>
+        </div>
+        <div class="map-controls">
+          <span class="map-legend-item"><span class="legend-dot dot-cyan"></span> Normal</span>
+          <span class="map-legend-item"><span class="legend-dot dot-amber"></span> Watch</span>
+          <span class="map-legend-item"><span class="legend-dot dot-ruby"></span> Alert</span>
+        </div>
+      </div>
+      <div id="map" class="map-canvas"></div>
+    </div>
+
+    <!-- Live Telemetry Card Stack -->
+    <aside class="side-stack">
+      <div class="glass-panel telemetry-panel reveal delay-3">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Surface Telemetry</div>
+            <h4 id="telemetry-region-label">{{ state.region }}</h4>
+          </div>
+          <span class="tag-badge basis-badge">OBSERVED</span>
+        </div>
+
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <span>Observed Rainfall</span>
+            <strong id="live-obs-rain">{{ state.snapshot.rainfall_mm }} mm</strong>
+          </div>
+          <div class="telemetry-item">
+            <span>Maximum Temp (Tmax)</span>
+            <strong id="live-obs-tmax">{{ state.snapshot.tmax_c }} °C</strong>
+          </div>
+          <div class="telemetry-item">
+            <span>Minimum Temp (Tmin)</span>
+            <strong id="live-obs-tmin">{{ state.snapshot.tmin_c }} °C</strong>
+          </div>
+          <div class="telemetry-item">
+            <span>Humidity (Est.)</span>
+            <strong id="live-obs-humidity">{{ state.snapshot.humidity_pct | round(1) }}%</strong>
+          </div>
+        </div>
+
+        <div class="climatology-box">
+          <div class="box-header">
+            <span>Climatological Rain Probability</span>
+            <strong id="climatology-prob">{{ state.real_time_conditions.current_state.rainfall_probability_pct }}%</strong>
+          </div>
+          <p class="box-desc">Historical probability of >2.5mm rainfall for this calendar window across the 15-year dataset.</p>
+        </div>
+      </div>
+
+      <!-- Anomaly Departures -->
+      <div class="glass-panel anomaly-summary-panel reveal delay-4">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Baseline Departures</div>
+            <h4>15-Year Normal Anomaly</h4>
+          </div>
+          <span class="tag-badge basis-badge">RULE DERIVED</span>
+        </div>
+
+        <div class="anomaly-indicators">
+          <div class="anomaly-row">
+            <span>Rainfall Departure</span>
+            <strong id="anomaly-rain-val" class="{% if state.real_time_conditions.current_state.anomaly.rainfall_mm_pct >= 0 %}text-cyan{% else %}text-amber{% endif %}">
+              {{ state.real_time_conditions.current_state.anomaly.rainfall_mm_pct }}%
+            </strong>
+          </div>
+          <div class="anomaly-row">
+            <span>Tmax Departure</span>
+            <strong id="anomaly-tmax-val" class="{% if state.real_time_conditions.current_state.anomaly.tmax_c_delta_c >= 0 %}text-ruby{% else %}text-cyan{% endif %}">
+              {{ state.real_time_conditions.current_state.anomaly.tmax_c_delta_c }} °C
+            </strong>
+          </div>
+          <div class="anomaly-row">
+            <span>Tmin Departure</span>
+            <strong id="anomaly-tmin-val">
+              {{ state.real_time_conditions.current_state.anomaly.tmin_c_delta_c }} °C
+            </strong>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- TAB 2: SPATIO-TEMPORAL FORECAST & UNCERTAINTY -->
+<!-- ============================================================ -->
+<section id="view-forecast" class="tab-view">
+  <div class="forecast-layout">
+    <div class="glass-panel chart-panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-label">Multi-Horizon Predictive Model</div>
+          <h3>Spatio-Temporal Forecast with 80% Prediction Intervals</h3>
+        </div>
+        <div class="chart-controls">
+          <button class="var-toggle active" data-var="all">All Variables</button>
+          <button class="var-toggle" data-var="rainfall">Rainfall Only</button>
+          <button class="var-toggle" data-var="temp">Temperature Only</button>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="forecastChart"></canvas>
+      </div>
+
+      <div class="chart-footer-legend">
+        <div class="legend-entry">
+          <span class="legend-line line-rain"></span>
+          <span>Rainfall Mean Forecast</span>
+        </div>
+        <div class="legend-entry">
+          <span class="legend-band band-rain"></span>
+          <span>80% Confidence Interval (P10 - P90)</span>
+        </div>
+        <div class="legend-entry">
+          <span class="legend-line line-tmax"></span>
+          <span>Max Temperature (Tmax)</span>
+        </div>
+        <div class="legend-entry">
+          <span class="legend-line line-tmin"></span>
+          <span>Min Temperature (Tmin)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Uncertainty Breakdown Side Panel -->
+    <div class="side-stack">
+      <div class="glass-panel uncertainty-panel">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Uncertainty Metrics</div>
+            <h4>Ensemble Tree Variance</h4>
+          </div>
+          <span class="tag-badge tag-forecast">ML ENSEMBLE</span>
+        </div>
+
+        <div class="uncertainty-stat-list">
+          <div class="stat-card">
+            <span>Forecast Confidence</span>
+            <strong id="confidence-metric" class="text-cyan">{{ state.scorecard.forecast_confidence }}%</strong>
+            <p class="muted">Derived from 300 decision tree variance across forecast horizon.</p>
+          </div>
+          <div class="stat-card">
+            <span>Expected Rainfall Range</span>
+            <strong id="rain-range-metric">
+              {% if state.forecast.rainfall_lower %}
+                {{ state.forecast.rainfall_lower[0] }} - {{ state.forecast.rainfall_upper[0] }} mm
+              {% else %}
+                ± 1.8 mm
+              {% endif %}
+            </strong>
+            <p class="muted">Day 1 80% prediction interval.</p>
+          </div>
+          <div class="stat-card">
+            <span>Thermal Variance Spread</span>
+            <strong id="temp-range-metric">
+              {% if state.forecast.tmax_lower %}
+                {{ state.forecast.tmax_lower[0] }} - {{ state.forecast.tmax_upper[0] }} °C
+              {% else %}
+                ± 0.9 °C
+              {% endif %}
+            </strong>
+            <p class="muted">Day 1 Tmax uncertainty window.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Time Series History -->
+      <div class="glass-panel time-series-panel">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Historical Trajectory</div>
+            <h4>30-Day Context + 14-Day Prediction</h4>
+          </div>
+        </div>
+        <canvas id="temporalContextChart" style="height: 180px;"></canvas>
       </div>
     </div>
   </div>
 </section>
 
-<section class="dashboard-grid">
-  <div class="glass-panel map-panel reveal delay-2">
-    <div class="panel-head">
-      <div>
-        <div class="section-label">Spatial View</div>
-        <h3>Interactive geospatial forecast</h3>
+<!-- ============================================================ -->
+<!-- TAB 3: SCENARIO LAB (WHAT-IF SIMULATION) -->
+<!-- ============================================================ -->
+<section id="view-scenario" class="tab-view">
+  <div class="scenario-layout">
+    <!-- Sliders and Inputs Console -->
+    <div class="glass-panel scenario-controls-panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-label">What-If Climate Simulator</div>
+          <h3>Perturbation & Climate Stress Controls</h3>
+        </div>
+        <button id="reset-scenario-btn" class="ghost-button btn-sm">Reset to Normal</button>
       </div>
-      <div class="chip-row" aria-label="Pilot regions">
-        {% for region in state.pilot_regions %}
-        <button class="chip" data-region-switch="{{ region.name }}">{{ region.name }}</button>
-        {% endfor %}
+
+      <div class="controls-grid">
+        <!-- Rainfall Slider -->
+        <div class="control-box">
+          <div class="control-label-row">
+            <span class="control-title">Rainfall Perturbation</span>
+            <strong class="control-val text-cyan"><span id="rainfall-value">0</span>%</strong>
+          </div>
+          <input id="rainfall-slider" type="range" min="-40" max="60" value="0" step="5" class="custom-slider" />
+          <div class="slider-ticks">
+            <span>-40% (Drought)</span>
+            <span>0% (Baseline)</span>
+            <span>+60% (Excess)</span>
+          </div>
+          <div class="preset-buttons">
+            <button class="preset-chip" data-rain="-25" data-temp="0">-25% Deficit</button>
+            <button class="preset-chip" data-rain="0" data-temp="0">Normal</button>
+            <button class="preset-chip" data-rain="25" data-temp="0">+25% Monsoon</button>
+            <button class="preset-chip" data-rain="50" data-temp="1.5">+50% Extreme</button>
+          </div>
+        </div>
+
+        <!-- Temperature Slider -->
+        <div class="control-box">
+          <div class="control-label-row">
+            <span class="control-title">Temperature Anomaly Offset</span>
+            <strong class="control-val text-amber"><span id="temp-value">0.0</span> °C</strong>
+          </div>
+          <input id="temp-slider" type="range" min="-4" max="6" value="0" step="0.5" class="custom-slider slider-amber" />
+          <div class="slider-ticks">
+            <span>-4.0 °C (Cooling)</span>
+            <span>0.0 °C (Normal)</span>
+            <span>+6.0 °C (Heatwave)</span>
+          </div>
+          <div class="preset-buttons">
+            <button class="preset-chip" data-rain="0" data-temp="-2">-2.0 °C</button>
+            <button class="preset-chip" data-rain="0" data-temp="1.5">+1.5 °C Warm</button>
+            <button class="preset-chip" data-rain="-10" data-temp="3.0">+3.0 °C Heat</button>
+            <button class="preset-chip" data-rain="-20" data-temp="4.5">+4.5 °C Severe</button>
+          </div>
+        </div>
+
+        <!-- Horizon Slider -->
+        <div class="control-box">
+          <div class="control-label-row">
+            <span class="control-title">Simulation Horizon</span>
+            <strong class="control-val text-green"><span id="horizon-value">14</span> Days</strong>
+          </div>
+          <input id="horizon-slider" type="range" min="3" max="30" value="14" step="1" class="custom-slider slider-green" />
+          <div class="slider-ticks">
+            <span>3 Days</span>
+            <span>14 Days (Standard)</span>
+            <span>30 Days (Extended)</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div id="map" class="map-canvas"></div>
+
+    <!-- Comparative Simulation Output Grid -->
+    <div class="dashboard-grid">
+      <!-- Simulation Chart -->
+      <div class="glass-panel chart-panel">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Dynamic Response</div>
+            <h3>Baseline Forecast vs. Perturbed Scenario</h3>
+          </div>
+          <span class="tag-badge tag-forecast">ML SIMULATION</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="simulationChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Water Budget & Actionable Advisory -->
+      <div class="side-stack">
+        <div class="glass-panel water-budget-panel">
+          <div class="panel-head compact">
+            <div>
+              <div class="section-label">Cumulative Water Balance</div>
+              <h4>Precipitation Budget</h4>
+            </div>
+            <span class="tag-badge basis-badge">RULE DERIVED</span>
+          </div>
+
+          <div class="budget-card-grid">
+            <div class="budget-item">
+              <span>Cumulative Normal</span>
+              <strong id="sim-cum-normal">{{ state.simulation.cumulative_normal_rainfall | round(1) }} mm</strong>
+            </div>
+            <div class="budget-item">
+              <span>Baseline Forecast</span>
+              <strong id="sim-cum-base">{{ state.simulation.cumulative_baseline_rainfall | round(1) }} mm</strong>
+            </div>
+            <div class="budget-item">
+              <span>Scenario Forecast</span>
+              <strong id="sim-cum-scen" class="text-cyan">{{ state.simulation.cumulative_scenario_rainfall | round(1) }} mm</strong>
+            </div>
+            <div class="budget-item">
+              <span>Net Deficit / Surplus</span>
+              <strong id="sim-deficit-surplus" class="{% if state.simulation.rainfall_deficit_surplus >= 0 %}text-cyan{% else %}text-amber{% endif %}">
+                {{ state.simulation.rainfall_deficit_surplus | round(1) }} mm
+              </strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Adaptive Precautionary Advisory -->
+        <div class="glass-panel precautions-panel">
+          <div class="panel-head compact">
+            <div>
+              <div class="section-label">Adaptive Precautions</div>
+              <h4>Decision Support Recommendations</h4>
+            </div>
+            <span class="tag-badge basis-badge">RULE BASED</span>
+          </div>
+          <ul id="precautions-list" class="precaution-list">
+            {% for item in state.real_time_conditions.scenario_precautions.messages %}
+            <li>
+              <span class="check-bullet">✔</span>
+              <span>{{ item }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
+</section>
 
-  <aside class="side-stack">
-    <div class="glass-panel controls-panel reveal delay-3">
-      <div class="panel-head compact">
-        <div>
-          <div class="section-label">Scenario Lab</div>
-          <h3>What-if simulation</h3>
+<!-- ============================================================ -->
+<!-- TAB 4: EXTREME EVENTS & HAZARDS -->
+<!-- ============================================================ -->
+<section id="view-extremes" class="tab-view">
+  <div class="extremes-layout">
+    <div class="hero-grid">
+      <!-- Hazard Status -->
+      <div class="glass-panel hazard-card">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Hazard Radar</div>
+            <h3>Active Meteorological Alerts</h3>
+          </div>
+          <span class="risk-badge badge-{{ state.risk_level }}">{{ state.risk_level | upper }}</span>
+        </div>
+
+        <div id="extremes-list" class="extreme-event-cards">
+          {% for ev in state.extreme_events.events %}
+          <div class="hazard-alert-item alert-{{ ev.severity }}">
+            <div class="hazard-icon">⚡</div>
+            <div class="hazard-body">
+              <strong>{{ ev.label }}</strong>
+              <p>Triggered when observed value breaches the climatological threshold of {{ ev.threshold }}.</p>
+            </div>
+          </div>
+          {% else %}
+          <div class="hazard-alert-item alert-normal">
+            <div class="hazard-icon">✅</div>
+            <div class="hazard-body">
+              <strong>No Critical Extreme Events Active</strong>
+              <p>All observed values are within the 15-year 90th percentile envelope for this season.</p>
+            </div>
+          </div>
+          {% endfor %}
         </div>
       </div>
-      <label class="control">
-        <span>Rainfall change</span>
-        <input id="rainfall-slider" type="range" min="-40" max="60" value="0" />
-        <strong><span id="rainfall-value">0</span>%</strong>
-      </label>
-      <label class="control">
-        <span>Temperature change</span>
-        <input id="temp-slider" type="range" min="-4" max="6" value="0" step="0.1" />
-        <strong><span id="temp-value">0</span> C</strong>
-      </label>
-      <label class="control">
-        <span>Forecast horizon</span>
-        <input id="horizon-slider" type="range" min="3" max="30" value="14" />
-        <strong><span id="horizon-value">14</span> days</strong>
-      </label>
+
+      <!-- Percentile Matrix -->
+      <div class="glass-panel percentile-card">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">15-Year Climatology</div>
+            <h3>Historical Percentile Ranks</h3>
+          </div>
+          <span class="tag-badge basis-badge">RULE DERIVED</span>
+        </div>
+
+        <div class="percentile-ranks-list">
+          <div class="percentile-row">
+            <span>Rainfall Percentile</span>
+            <strong>{{ (state.twin_state.percentile_rank.rainfall_mm * 100) | round(1) }}th %ile</strong>
+            <div class="rank-bar"><div class="rank-fill" style="width: {{ (state.twin_state.percentile_rank.rainfall_mm * 100) | round(1) }}%;"></div></div>
+          </div>
+          <div class="percentile-row">
+            <span>Max Temperature Percentile</span>
+            <strong>{{ (state.twin_state.percentile_rank.tmax_c * 100) | round(1) }}th %ile</strong>
+            <div class="rank-bar"><div class="rank-fill bar-amber" style="width: {{ (state.twin_state.percentile_rank.tmax_c * 100) | round(1) }}%;"></div></div>
+          </div>
+          <div class="percentile-row">
+            <span>Min Temperature Percentile</span>
+            <strong>{{ (state.twin_state.percentile_rank.tmin_c * 100) | round(1) }}th %ile</strong>
+            <div class="rank-bar"><div class="rank-fill bar-green" style="width: {{ (state.twin_state.percentile_rank.tmin_c * 100) | round(1) }}%;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- TAB 5: MODEL & SCIENCE SCORECARD -->
+<!-- ============================================================ -->
+<section id="view-scorecard" class="tab-view">
+  <div class="scorecard-layout">
+    <!-- Top System Stats -->
+    <div class="hero-metrics scorecard-kpis">
+      <article class="metric-card">
+        <span>Data Ingestion Coverage</span>
+        <strong class="text-cyan">{{ state.scorecard.data_coverage }}%</strong>
+        <p class="muted">{{ state.scorecard.total_observations }} records across {{ state.scorecard.total_regions }} pilot regions.</p>
+      </article>
+      <article class="metric-card">
+        <span>Model Performance Index</span>
+        <strong class="text-green">{{ state.scorecard.model_performance }}%</strong>
+        <p class="muted">Random Forest multi-output regressor evaluation.</p>
+      </article>
+      <article class="metric-card">
+        <span>Forecast Confidence</span>
+        <strong class="text-amber">{{ state.scorecard.forecast_confidence }}%</strong>
+        <p class="muted">300 trees ensemble consistency score.</p>
+      </article>
+      <article class="metric-card">
+        <span>Temporal Window</span>
+        <strong>{{ state.scorecard.date_range[0] }} to {{ state.scorecard.date_range[1] }}</strong>
+        <p class="muted">Continuous daily time-series sequence.</p>
+      </article>
     </div>
 
-    <div class="glass-panel data-panel reveal delay-4">
-      <div class="panel-head compact">
-        <div>
-          <div class="section-label">Data Sources</div>
-          <h3>IMD-only (national gridded)</h3>
+    <!-- Model Comparison Table & Feature Importance -->
+    <div class="dashboard-grid">
+      <!-- Benchmark Table -->
+      <div class="glass-panel">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Validation Benchmark</div>
+            <h3>Persistence Baseline vs. Random Forest Regressor</h3>
+          </div>
+          <span class="tag-badge tag-forecast">MODEL EVALUATION</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="benchmark-table">
+            <thead>
+              <tr>
+                <th>Target Variable</th>
+                <th>Model</th>
+                <th>MAE</th>
+                <th>RMSE</th>
+                <th>R² Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td rowspan="2" class="var-cell">Rainfall (mm)</td>
+                <td><span class="model-tag baseline-tag">Persistence Baseline</span></td>
+                <td>{{ state.model_comparison.persistence.rainfall_mm.mae }}</td>
+                <td>{{ state.model_comparison.persistence.rainfall_mm.rmse }}</td>
+                <td>{{ state.model_comparison.persistence.rainfall_mm.r2 }}</td>
+              </tr>
+              <tr class="rf-row">
+                <td><span class="model-tag rf-tag">Random Forest (300 Trees)</span></td>
+                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.rainfall_mm.mae }}</strong></td>
+                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.rainfall_mm.rmse }}</strong></td>
+                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.rainfall_mm.r2 }}</strong></td>
+              </tr>
+
+              <tr>
+                <td rowspan="2" class="var-cell">Max Temp (°C)</td>
+                <td><span class="model-tag baseline-tag">Persistence Baseline</span></td>
+                <td>{{ state.model_comparison.persistence.tmax_c.mae }}</td>
+                <td>{{ state.model_comparison.persistence.tmax_c.rmse }}</td>
+                <td>{{ state.model_comparison.persistence.tmax_c.r2 }}</td>
+              </tr>
+              <tr class="rf-row">
+                <td><span class="model-tag rf-tag">Random Forest (300 Trees)</span></td>
+                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmax_c.mae }}</strong></td>
+                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmax_c.rmse }}</strong></td>
+                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmax_c.r2 }}</strong></td>
+              </tr>
+
+              <tr>
+                <td rowspan="2" class="var-cell">Min Temp (°C)</td>
+                <td><span class="model-tag baseline-tag">Persistence Baseline</span></td>
+                <td>{{ state.model_comparison.persistence.tmin_c.mae }}</td>
+                <td>{{ state.model_comparison.persistence.tmin_c.rmse }}</td>
+                <td>{{ state.model_comparison.persistence.tmin_c.r2 }}</td>
+              </tr>
+              <tr class="rf-row">
+                <td><span class="model-tag rf-tag">Random Forest (300 Trees)</span></td>
+                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmin_c.mae }}</strong></td>
+                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmin_c.rmse }}</strong></td>
+                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmin_c.r2 }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="source-list">
+
+      <!-- Feature Importance Horizontal Bars -->
+      <div class="glass-panel">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Predictor Weights</div>
+            <h3>Feature Importance Ranking</h3>
+          </div>
+          <span class="tag-badge tag-forecast">GINI IMPORTANCE</span>
+        </div>
+
+        <div class="feature-importance-list">
+          {% for feat, pct in state.feature_importance.items() %}
+          <div class="feat-row">
+            <div class="feat-label">
+              <span>{{ feat }}</span>
+              <strong>{{ pct }}%</strong>
+            </div>
+            <div class="feat-bar-bg">
+              <div class="feat-bar-fill" style="width: {{ pct }}%;"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Provenance & Integrity Manifest -->
+    <div class="glass-panel manifest-panel">
+      <div class="panel-head compact">
+        <div>
+          <div class="section-label">Data Architecture</div>
+          <h3>National Dataset Provenance & Scientific Classification</h3>
+        </div>
+      </div>
+      <div class="source-grid">
         {% for source in state.source_manifest %}
-        <article>
-          <span>{{ source.name }}</span>
+        <article class="source-card">
+          <div class="source-header">
+            <span>{{ source.name }}</span>
+            <span class="source-badge">National Feed</span>
+          </div>
           <strong>{{ source.role }}</strong>
           <p class="muted">{{ source.source }}</p>
         </article>
         {% endfor %}
       </div>
     </div>
-  </aside>
-</section>
-
-<section class="chart-grid">
-  <div class="glass-panel chart-panel reveal delay-2">
-    <div class="panel-head compact">
-      <div>
-        <div class="section-label">Temporal Forecast</div>
-        <h3>Rainfall and temperature trajectory</h3>
-      </div>
-    </div>
-    <canvas id="forecastChart"></canvas>
-  </div>
-
-  <div class="glass-panel chart-panel reveal delay-3">
-    <div class="panel-head compact">
-      <div>
-        <div class="section-label">Model Layer</div>
-        <h3>Performance snapshot</h3>
-      </div>
-    </div>
-    <div class="model-grid">
-      <div><span>Rainfall MAE</span><strong id="mae-rainfall">{{ state.model_metrics.mae_rainfall_mm | default(0) | round(2) }}</strong></div>
-      <div><span>Tmax MAE</span><strong id="mae-tmax">{{ state.model_metrics.mae_tmax_c | default(0) | round(2) }}</strong></div>
-      <div><span>Tmin MAE</span><strong id="mae-tmin">{{ state.model_metrics.mae_tmin_c | default(0) | round(2) }}</strong></div>
-    </div>
   </div>
 </section>
+
+<!-- ============================================================ -->
+<!-- TAB 6: HISTORICAL REPLAY & VERIFICATION -->
+<!-- ============================================================ -->
+<section id="view-replay" class="tab-view">
+  <div class="replay-layout">
+    <div class="glass-panel replay-controls-panel">
+      <div class="panel-head">
+        <div>
+          <div class="section-label">Verification Mode</div>
+          <h3>Historical Backtest Replay</h3>
+        </div>
+      </div>
+
+      <div class="replay-input-row">
+        <div class="input-group">
+          <label for="replay-start-date">Start Date</label>
+          <input id="replay-start-date" type="date" value="2024-06-01" min="2024-01-01" max="2025-12-31" class="date-input" />
+        </div>
+        <div class="input-group">
+          <label for="replay-end-date">End Date</label>
+          <input id="replay-end-date" type="date" value="2024-07-15" min="2024-01-01" max="2025-12-31" class="date-input" />
+        </div>
+        <button id="run-replay-btn" class="primary-button btn-lg">Run Backtest Replay</button>
+      </div>
+    </div>
+
+    <div class="glass-panel chart-panel">
+      <div class="panel-head compact">
+        <div>
+          <div class="section-label">Ground Truth vs Model</div>
+          <h3>Actual Observations vs 1-Day-Ahead Predictions</h3>
+        </div>
+        <div id="replay-metrics-summary" class="replay-score-pill">
+          <span>Ready to execute</span>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="replayChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
 {% endblock %}

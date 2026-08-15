@@ -48,6 +48,8 @@ FEATURE_COLUMNS = [
     "tmin_lag_1",
     "humidity_lag_1",
     "diurnal_range_lag_1",
+    "insat_lst_lag_1",
+    "insat_sst_lag_1",
     "latitude",
     "longitude",
     "region_code",
@@ -96,6 +98,13 @@ def normalize_raw_observations(frame: pd.DataFrame) -> pd.DataFrame:
     if "grid_points" not in normalized.columns:
         normalized["grid_points"] = 1
 
+    # INSAT columns: fill with NaN if absent (regions without INSAT coverage)
+    for insat_col in ["insat_lst_mean_K", "insat_sst_mean_K"]:
+        if insat_col not in normalized.columns:
+            normalized[insat_col] = np.nan
+        else:
+            normalized[insat_col] = pd.to_numeric(normalized[insat_col], errors="coerce")
+
     normalized = normalized.dropna(subset=list(REQUIRED_RAW_COLUMNS))
     normalized = normalized.sort_values(["region", "date"]).reset_index(drop=True)
     return normalized
@@ -123,6 +132,16 @@ def add_lag_features(frame: pd.DataFrame, region_code_map: dict[str, int] | None
     frame["humidity_lag_1"] = lag_groups["humidity_pct"].shift(1)
     frame["diurnal_range_lag_1"] = lag_groups["diurnal_range_c"].shift(1)
 
+    # INSAT lag features (NaN for regions without satellite coverage)
+    if "insat_lst_mean_K" in frame.columns:
+        frame["insat_lst_lag_1"] = lag_groups["insat_lst_mean_K"].shift(1)
+    else:
+        frame["insat_lst_lag_1"] = np.nan
+    if "insat_sst_mean_K" in frame.columns:
+        frame["insat_sst_lag_1"] = lag_groups["insat_sst_mean_K"].shift(1)
+    else:
+        frame["insat_sst_lag_1"] = np.nan
+
     return frame
 
 
@@ -136,7 +155,12 @@ def prepare_training_features(
         region_code_map = build_region_code_map(normalized["region"].astype(str).unique().tolist())
 
     with_lags = add_lag_features(normalized, region_code_map)
-    with_lags = with_lags.dropna().reset_index(drop=True)
+    # Drop rows where core lag features are NaN but keep INSAT NaN (imputed to 0 for RF)
+    core_lag_cols = [c for c in FEATURE_COLUMNS if c not in ("insat_lst_lag_1", "insat_sst_lag_1")]
+    with_lags = with_lags.dropna(subset=core_lag_cols).reset_index(drop=True)
+    # Fill INSAT NaN with 0 so the Random Forest can handle missing satellite coverage
+    for c in ["insat_lst_lag_1", "insat_sst_lag_1"]:
+        with_lags[c] = with_lags[c].fillna(0.0)
 
     feature_frame = with_lags[FEATURE_COLUMNS + TARGET_COLUMNS].copy()
     return feature_frame, region_code_map
@@ -157,18 +181,27 @@ def prepare_inference_features(
     tail = sorted_history.tail(7)
     diurnal_tail = tail["diurnal_range_c"] if "diurnal_range_c" in tail.columns else tail["tmax_c"] - tail["tmin_c"]
 
+    if step_ahead == 0:
+        insat_lst_val = last_row.get("insat_lst_lag_1", last_row.get("insat_lst_mean_K", 0.0))
+        insat_sst_val = last_row.get("insat_sst_lag_1", last_row.get("insat_sst_mean_K", 0.0))
+    else:
+        insat_lst_val = last_row.get("insat_lst_mean_K", last_row.get("insat_lst_lag_1", 0.0))
+        insat_sst_val = last_row.get("insat_sst_mean_K", last_row.get("insat_sst_lag_1", 0.0))
+
     feature_row = {
         "day_of_year": forecast_date.dayofyear,
         "month_sin": float(np.sin(2 * np.pi * month / 12.0)),
         "month_cos": float(np.cos(2 * np.pi * month / 12.0)),
-        "rainfall_lag_1": float(last_row["rainfall_mm"]),
-        "rainfall_lag_7": float(sorted_history.iloc[-7]["rainfall_mm"]) if len(sorted_history) >= 7 else float(last_row["rainfall_mm"]),
-        "rainfall_roll_7": float(tail["rainfall_mm"].mean()),
-        "tmax_lag_1": float(last_row["tmax_c"]),
-        "tmax_roll_7": float(tail["tmax_c"].mean()),
-        "tmin_lag_1": float(last_row["tmin_c"]),
-        "humidity_lag_1": float(last_row["humidity_pct"]),
-        "diurnal_range_lag_1": float(diurnal_tail.iloc[-1] if hasattr(diurnal_tail, "iloc") else diurnal_tail),
+        "rainfall_lag_1": float(last_row["rainfall_mm"]) if step_ahead > 0 else float(last_row.get("rainfall_lag_1", last_row["rainfall_mm"])),
+        "rainfall_lag_7": float(sorted_history.iloc[-7]["rainfall_mm"]) if len(sorted_history) >= 7 and step_ahead > 0 else float(last_row.get("rainfall_lag_7", last_row["rainfall_mm"])),
+        "rainfall_roll_7": float(tail["rainfall_mm"].mean()) if step_ahead > 0 else float(last_row.get("rainfall_roll_7", tail["rainfall_mm"].mean())),
+        "tmax_lag_1": float(last_row["tmax_c"]) if step_ahead > 0 else float(last_row.get("tmax_lag_1", last_row["tmax_c"])),
+        "tmax_roll_7": float(tail["tmax_c"].mean()) if step_ahead > 0 else float(last_row.get("tmax_roll_7", tail["tmax_c"].mean())),
+        "tmin_lag_1": float(last_row["tmin_c"]) if step_ahead > 0 else float(last_row.get("tmin_lag_1", last_row["tmin_c"])),
+        "humidity_lag_1": float(last_row["humidity_pct"]) if step_ahead > 0 else float(last_row.get("humidity_lag_1", last_row["humidity_pct"])),
+        "diurnal_range_lag_1": float(diurnal_tail.iloc[-1] if hasattr(diurnal_tail, "iloc") else diurnal_tail) if step_ahead > 0 else float(last_row.get("diurnal_range_lag_1", last_row["tmax_c"] - last_row["tmin_c"])),
+        "insat_lst_lag_1": float(insat_lst_val) if pd.notna(insat_lst_val) else 0.0,
+        "insat_sst_lag_1": float(insat_sst_val) if pd.notna(insat_sst_val) else 0.0,
         "latitude": float(last_row["latitude"]),
         "longitude": float(last_row["longitude"]),
         "region_code": int(region_code),

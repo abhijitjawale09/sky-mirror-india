@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 
 from ..data.loader import REGION_PROFILES, get_region_profile, latest_snapshot, load_training_observations
@@ -74,6 +75,12 @@ class DigitalTwinEngine:
         if mode.name == "replay" and mode.replay_start and mode.replay_end:
             replay = build_replay_result(self.forecaster, region_history, mode.replay_start, mode.replay_end)
 
+        # Compute data quality / scorecard metrics
+        scorecard = self._build_scorecard(region_history, forecast)
+
+        # Extreme event analysis
+        extremes = self._detect_extreme_events(region_history, current_conditions)
+
         return {
             "region": profile.name,
             "mode": mode.name,
@@ -82,7 +89,7 @@ class DigitalTwinEngine:
                 "rainfall_mm": "observed",
                 "tmax_c": "observed",
                 "tmin_c": "observed",
-                "humidity_pct": "observed",
+                "humidity_pct": "rule_estimated",
                 "rainfall_anomaly": "rule_derived",
                 "temperature_anomaly": "rule_derived",
                 "latitude": "observed",
@@ -95,6 +102,7 @@ class DigitalTwinEngine:
                 "rainfall": "ml_forecast",
                 "tmax": "ml_forecast",
                 "tmin": "ml_forecast",
+                "uncertainty": "ensemble_tree_variance",
             },
             "real_time_conditions": {
                 "current_state": current_conditions,
@@ -125,6 +133,10 @@ class DigitalTwinEngine:
             "simulation": simulation.to_dict(),
             "replay": replay.to_dict() if replay is not None else None,
             "model_metrics": self.metrics,
+            "model_comparison": self.forecaster.get_model_comparison(),
+            "feature_importance": self.forecaster.get_feature_importance(),
+            "scorecard": scorecard,
+            "extreme_events": extremes,
             "data_source": self.data_source,
             "source_manifest": self._source_manifest(),
             "pilot_regions": [
@@ -136,12 +148,21 @@ class DigitalTwinEngine:
     def _forecast_payload(self, forecast: pd.DataFrame) -> dict:
         forecast = forecast.copy()
         forecast["date"] = pd.to_datetime(forecast["date"])
-        return {
+        result = {
             "labels": forecast["date"].dt.strftime("%d %b").tolist(),
             "rainfall": forecast["rainfall_mm"].round(2).tolist(),
             "tmax": forecast["tmax_c"].round(2).tolist(),
             "tmin": forecast["tmin_c"].round(2).tolist(),
         }
+        # Add uncertainty bands if available
+        if "rainfall_lower" in forecast.columns:
+            result["rainfall_lower"] = forecast["rainfall_lower"].round(2).tolist()
+            result["rainfall_upper"] = forecast["rainfall_upper"].round(2).tolist()
+            result["tmax_lower"] = forecast["tmax_lower"].round(2).tolist()
+            result["tmax_upper"] = forecast["tmax_upper"].round(2).tolist()
+            result["tmin_lower"] = forecast["tmin_lower"].round(2).tolist()
+            result["tmin_upper"] = forecast["tmin_upper"].round(2).tolist()
+        return result
 
     def _build_time_series(self, region_history: pd.DataFrame, forecast: pd.DataFrame) -> dict:
         history = region_history.sort_values("date").tail(30).copy()
@@ -226,6 +247,91 @@ class DigitalTwinEngine:
             "predicted_rainfall": round(predicted_rainfall, 2),
             "predicted_tmax": round(predicted_tmax, 2),
             "risk_level": risk_level,
+        }
+
+    def _build_scorecard(self, region_history: pd.DataFrame, forecast: pd.DataFrame) -> dict:
+        """Compute a live scorecard from actual system data."""
+        total_obs = len(self.observations)
+        total_regions = self.observations["region"].nunique()
+        date_range = self.observations["date"]
+        days_covered = (date_range.max() - date_range.min()).days + 1
+        actual_dates = date_range.nunique()
+
+        # Data coverage: what % of expected region×date cells have data
+        expected_cells = days_covered * total_regions
+        data_coverage = min(100.0, (total_obs / expected_cells) * 100.0) if expected_cells > 0 else 0.0
+
+        # Model performance: use R² of rainfall (hardest target), scaled 0-100
+        rf_metrics = self.forecaster.deterministic_metrics
+        r2_rainfall = rf_metrics.get("rainfall_mm", {}).get("r2", 0.0)
+        model_score = max(0.0, min(100.0, r2_rainfall * 100))
+
+        # Forecast confidence: mean of tree std across forecast horizon (lower std = higher confidence)
+        forecast_confidence = 75.0  # default
+        if self.forecaster.model is not None and not forecast.empty:
+            tree_preds = np.array([
+                tree.predict(self.forecaster.prepare_features(self.observations).iloc[-1:][self.forecaster.feature_columns].values)
+                for tree in self.forecaster.model.estimators_
+            ])
+            mean_std = float(np.mean(np.std(tree_preds, axis=0)))
+            # Normalize: lower std = higher confidence (scale: std<1 → 95%, std>10 → 30%)
+            forecast_confidence = max(30.0, min(95.0, 95.0 - mean_std * 7))
+
+        # Data freshness: how recent is the latest observation
+        latest_date = pd.to_datetime(date_range.max())
+        days_old = max(0, (pd.Timestamp.now() - latest_date).days)
+        freshness = max(0.0, min(100.0, 100.0 - days_old * 0.5))
+
+        return {
+            "data_coverage": round(data_coverage, 1),
+            "model_performance": round(model_score, 1),
+            "forecast_confidence": round(forecast_confidence, 1),
+            "data_freshness": round(freshness, 1),
+            "total_observations": total_obs,
+            "total_regions": total_regions,
+            "date_range": [date_range.min().strftime("%Y-%m-%d"), date_range.max().strftime("%Y-%m-%d")],
+            "days_old": days_old,
+            "basis": "computed_from_actual_system_state",
+        }
+
+    def _detect_extreme_events(self, region_history: pd.DataFrame, current_state: dict) -> dict:
+        """Detect extreme weather conditions from historical context."""
+        history = region_history.copy()
+        history["date"] = pd.to_datetime(history["date"])
+        recent_7d = history.tail(7)
+
+        events = []
+        current = current_state.get("current", {})
+        rainfall = current.get("rainfall_mm", 0)
+        tmax = current.get("tmax_c", 0)
+
+        # Heavy rainfall threshold (IMD: >64.5mm = very heavy)
+        if rainfall > 64.5:
+            events.append({"type": "heavy_rainfall", "severity": "severe", "value": rainfall, "threshold": 64.5, "label": f"Very Heavy Rainfall: {rainfall:.1f} mm"})
+        elif rainfall > 35.5:
+            events.append({"type": "heavy_rainfall", "severity": "moderate", "value": rainfall, "threshold": 35.5, "label": f"Heavy Rainfall: {rainfall:.1f} mm"})
+
+        # Heatwave conditions (simplified: tmax > 40°C or >5°C above normal)
+        if tmax > 40.0:
+            events.append({"type": "heatwave", "severity": "severe", "value": tmax, "threshold": 40.0, "label": f"Extreme Heat: {tmax:.1f}°C"})
+        elif tmax > 37.0:
+            events.append({"type": "heatwave", "severity": "moderate", "value": tmax, "threshold": 37.0, "label": f"Heat Alert: {tmax:.1f}°C"})
+
+        # Drought indicator: 7-day cumulative rainfall < 5mm
+        cum_rain_7d = float(recent_7d["rainfall_mm"].sum())
+        if cum_rain_7d < 2.0 and len(recent_7d) >= 7:
+            events.append({"type": "drought_risk", "severity": "watch", "value": cum_rain_7d, "threshold": 2.0, "label": f"Dry Spell: {cum_rain_7d:.1f} mm in 7 days"})
+
+        # 99th percentile rainfall
+        p99 = float(history["rainfall_mm"].quantile(0.99))
+        if rainfall > p99 and p99 > 0:
+            events.append({"type": "extreme_rainfall", "severity": "extreme", "value": rainfall, "threshold": p99, "label": f"Extreme Rainfall (>99th pctl): {rainfall:.1f} mm"})
+
+        return {
+            "events": events,
+            "count": len(events),
+            "has_alerts": len(events) > 0,
+            "basis": "rule_derived_from_observed_data",
         }
 
     def _source_manifest(self) -> list[dict[str, str]]:

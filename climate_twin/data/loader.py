@@ -115,5 +115,12 @@ def normalize_observations(frame: pd.DataFrame) -> pd.DataFrame:
     if "region_code" not in normalized.columns:
         normalized["region_code"] = normalized["region"].astype("category").cat.codes
 
+    # Ensure INSAT columns exist (NaN for regions without satellite coverage)
+    for insat_col in ["insat_lst_mean_K", "insat_sst_mean_K"]:
+        if insat_col not in normalized.columns:
+            normalized[insat_col] = np.nan
+        else:
+            normalized[insat_col] = pd.to_numeric(normalized[insat_col], errors="coerce")
+
     normalized = normalized.dropna(subset=list(required_columns)).sort_values(["region", "date"]).reset_index(drop=True)
     return normalized

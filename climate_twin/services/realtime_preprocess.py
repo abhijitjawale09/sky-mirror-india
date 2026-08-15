@@ -40,7 +40,11 @@ class RealtimePreprocessor:
     def initialize_history(self, observations: pd.DataFrame) -> None:
         normalized = normalize_raw_observations(observations)
         with_lags = add_lag_features(normalized, self.region_code_map)
-        with_lags = with_lags.dropna().reset_index(drop=True)
+        core_lag_cols = [c for c in FEATURE_COLUMNS if c not in ("insat_lst_lag_1", "insat_sst_lag_1")]
+        with_lags = with_lags.dropna(subset=core_lag_cols).reset_index(drop=True)
+        for c in ["insat_lst_lag_1", "insat_sst_lag_1"]:
+            if c in with_lags.columns:
+                with_lags[c] = with_lags[c].fillna(0.0)
 
         for region in with_lags["region"].unique():
             region_df = with_lags[with_lags["region"] == region].copy()
@@ -64,7 +68,11 @@ class RealtimePreprocessor:
         combined = combined.sort_values("date").reset_index(drop=True)
 
         combined = add_lag_features(combined, self.region_code_map)
-        combined = combined.dropna().reset_index(drop=True)
+        core_lag_cols = [c for c in FEATURE_COLUMNS if c not in ("insat_lst_lag_1", "insat_sst_lag_1")]
+        combined = combined.dropna(subset=core_lag_cols).reset_index(drop=True)
+        for c in ["insat_lst_lag_1", "insat_sst_lag_1"]:
+            if c in combined.columns:
+                combined[c] = combined[c].fillna(0.0)
 
         self._history_cache[region] = combined
 
@@ -143,7 +151,11 @@ def prepare_single_observation(
     combined = combined.sort_values("date").reset_index(drop=True)
 
     combined = add_lag_features(combined, region_code_map)
-    combined = combined.dropna().reset_index(drop=True)
+    core_lag_cols = [c for c in FEATURE_COLUMNS if c not in ("insat_lst_lag_1", "insat_sst_lag_1")]
+    combined = combined.dropna(subset=core_lag_cols).reset_index(drop=True)
+    for c in ["insat_lst_lag_1", "insat_sst_lag_1"]:
+        if c in combined.columns:
+            combined[c] = combined[c].fillna(0.0)
 
     target_date = pd.Timestamp(observation["date"]) + pd.Timedelta(days=step_ahead)
     features = prepare_inference_features(
