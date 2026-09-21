@@ -1,0 +1,26 @@
+{
+  "rainfall_mm": {
+    "model_name": "random_forest",
+    "mae": 2.462789888047344,
+    "rmse": 6.477724101450062,
+    "r2": 0.23538768561277235,
+    "training_time_s": 0.41501399999833666,
+    "reason": "Lowest MAE (2.4628) among 4 models"
+  },
+  "tmax_c": {
+    "model_name": "random_forest",
+    "mae": 1.1715704708128538,
+    "rmse": 1.5269293951562326,
+    "r2": 0.9427814992024671,
+    "training_time_s": 0.41501399999833666,
+    "reason": "Lowest MAE (1.1716) among 4 models"
+  },
+  "tmin_c": {
+    "model_name": "hist_gradient_boosting",
+    "mae": 0.9055535218480921,
+    "rmse": 1.1936637206416136,
+    "r2": 0.9741194597589774,
+    "training_time_s": 1.1302102909976384,
+    "reason": "Lowest MAE (0.9056) among 4 models"
+  }
+}

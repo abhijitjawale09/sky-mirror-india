@@ -12,7 +12,7 @@ main_bp = Blueprint("main", __name__)
 @main_bp.get("/")
 def dashboard() -> str:
     engine = current_app.extensions["digital_twin_engine"]
-    region = request.args.get("region", current_app.config["PILOT_REGION"])
+    region = request.args.get("region", current_app.config.get("PILOT_REGION", "Kerala Coast"))
     state = engine.get_dashboard_state(region)
     return render_template("dashboard.html", state=state, region=region)
 
@@ -25,9 +25,9 @@ def predict() -> tuple[object, int]:
     scenario = TwinScenario(
         rainfall_delta_pct=float(payload.get("rainfall_delta_pct", 0.0)),
         temp_delta_c=float(payload.get("temp_delta_c", 0.0)),
-        horizon_days=max(3, min(int(payload.get("horizon_days", current_app.config["FORECAST_HORIZON_DAYS"])), 30)),
+        horizon_days=max(3, min(int(payload.get("horizon_days", current_app.config.get("FORECAST_HORIZON_DAYS", 14))), 30)),
     )
-    region = str(payload.get("region", current_app.config["PILOT_REGION"]))
+    region = str(payload.get("region", current_app.config.get("PILOT_REGION", "Kerala Coast")))
     mode = DashboardMode(
         name=str(payload.get("mode", "live")),
         replay_start=payload.get("replay_start"),
@@ -69,6 +69,21 @@ def replay() -> tuple[object, int]:
     )
     state = engine.get_dashboard_state(region, mode=mode)
     return jsonify({"region": region, "replay": state.get("replay")}), 200
+
+
+@main_bp.get("/api/model-comparison")
+def model_comparison() -> tuple[object, int]:
+    """Return multi-model comparison data for the dashboard."""
+    engine = current_app.extensions["digital_twin_engine"]
+    forecaster = engine.forecaster
+    return jsonify({
+        "model_comparison": forecaster.get_model_comparison(),
+        "model_comparison_detailed": forecaster.get_model_comparison_detailed(),
+        "best_models": forecaster.get_best_models(),
+        "trained_model_names": forecaster.get_model_names(),
+        "all_feature_importances": forecaster.get_all_feature_importances(),
+        "active_model": forecaster.active_model_name,
+    }), 200
 
 
 @main_bp.get("/health")

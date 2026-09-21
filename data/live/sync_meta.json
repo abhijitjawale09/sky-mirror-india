@@ -1,8 +1,8 @@
 {
   "status": "success",
-  "synced_at": "2026-08-15 16:13:41 IST",
-  "records_count": 56,
-  "latest_date": "2026-08-15",
+  "synced_at": "2026-09-21 21:18:58 IST",
+  "records_count": 217,
+  "latest_date": "2026-09-21",
   "regions_synced": [
     "Kerala Coast",
     "Indo-Gangetic Plain",
@@ -13,5 +13,5 @@
     "Coastal Odisha"
   ],
   "source": "Open-Meteo High-Resolution Real-Time Stream",
-  "latency_ms": 4799.6
+  "latency_ms": 6297.6
 }

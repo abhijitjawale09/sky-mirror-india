@@ -1,0 +1,38 @@
+{
+  "data_source": "processed:data/processed/climate_training_data.csv",
+  "total_samples": 5068,
+  "train_size": 3547,
+  "val_size": 760,
+  "test_size": 761,
+  "split_method": "chronological_70_15_15",
+  "feature_columns": [
+    "day_of_year",
+    "month_sin",
+    "month_cos",
+    "rainfall_lag_1",
+    "rainfall_lag_7",
+    "rainfall_roll_7",
+    "tmax_lag_1",
+    "tmax_roll_7",
+    "tmin_lag_1",
+    "humidity_lag_1",
+    "diurnal_range_lag_1",
+    "insat_lst_lag_1",
+    "insat_sst_lag_1",
+    "latitude",
+    "longitude",
+    "region_code"
+  ],
+  "target_columns": [
+    "rainfall_mm",
+    "tmax_c",
+    "tmin_c"
+  ],
+  "models_trained": [
+    "hist_gradient_boosting",
+    "lstm",
+    "random_forest",
+    "xgboost"
+  ],
+  "random_seed": 42
+}

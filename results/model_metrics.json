@@ -1,0 +1,209 @@
+[
+  {
+    "model_name": "hist_gradient_boosting",
+    "target": "rainfall_mm",
+    "mae": 2.5241,
+    "rmse": 6.9059,
+    "r2": 0.131,
+    "training_time_s": 1.13,
+    "hyperparameters": {
+      "max_iter": 500,
+      "max_depth": 10,
+      "learning_rate": 0.05,
+      "min_samples_leaf": 10,
+      "l2_regularization": 0.1,
+      "max_bins": 255,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "hist_gradient_boosting",
+    "target": "tmax_c",
+    "mae": 1.1771,
+    "rmse": 1.5404,
+    "r2": 0.9418,
+    "training_time_s": 1.13,
+    "hyperparameters": {
+      "max_iter": 500,
+      "max_depth": 10,
+      "learning_rate": 0.05,
+      "min_samples_leaf": 10,
+      "l2_regularization": 0.1,
+      "max_bins": 255,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "hist_gradient_boosting",
+    "target": "tmin_c",
+    "mae": 0.9056,
+    "rmse": 1.1937,
+    "r2": 0.9741,
+    "training_time_s": 1.13,
+    "hyperparameters": {
+      "max_iter": 500,
+      "max_depth": 10,
+      "learning_rate": 0.05,
+      "min_samples_leaf": 10,
+      "l2_regularization": 0.1,
+      "max_bins": 255,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "lstm",
+    "target": "rainfall_mm",
+    "mae": 3.0393,
+    "rmse": 7.145,
+    "r2": 0.0698,
+    "training_time_s": 3.67,
+    "hyperparameters": {
+      "lookback": 14,
+      "hidden_size": 64,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "epochs": 100,
+      "batch_size": 64,
+      "patience": 15,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "lstm",
+    "target": "tmax_c",
+    "mae": 2.1601,
+    "rmse": 2.7931,
+    "r2": 0.8085,
+    "training_time_s": 3.67,
+    "hyperparameters": {
+      "lookback": 14,
+      "hidden_size": 64,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "epochs": 100,
+      "batch_size": 64,
+      "patience": 15,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "lstm",
+    "target": "tmin_c",
+    "mae": 2.2838,
+    "rmse": 2.8112,
+    "r2": 0.8565,
+    "training_time_s": 3.67,
+    "hyperparameters": {
+      "lookback": 14,
+      "hidden_size": 64,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "epochs": 100,
+      "batch_size": 64,
+      "patience": 15,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "random_forest",
+    "target": "rainfall_mm",
+    "mae": 2.4628,
+    "rmse": 6.4777,
+    "r2": 0.2354,
+    "training_time_s": 0.42,
+    "hyperparameters": {
+      "n_estimators": 300,
+      "max_depth": 18,
+      "min_samples_leaf": 2,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "random_forest",
+    "target": "tmax_c",
+    "mae": 1.1716,
+    "rmse": 1.5269,
+    "r2": 0.9428,
+    "training_time_s": 0.42,
+    "hyperparameters": {
+      "n_estimators": 300,
+      "max_depth": 18,
+      "min_samples_leaf": 2,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "random_forest",
+    "target": "tmin_c",
+    "mae": 1.0184,
+    "rmse": 1.3109,
+    "r2": 0.9688,
+    "training_time_s": 0.42,
+    "hyperparameters": {
+      "n_estimators": 300,
+      "max_depth": 18,
+      "min_samples_leaf": 2,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "xgboost",
+    "target": "rainfall_mm",
+    "mae": 2.7082,
+    "rmse": 7.0577,
+    "r2": 0.0923,
+    "training_time_s": 1.23,
+    "hyperparameters": {
+      "n_estimators": 500,
+      "max_depth": 8,
+      "learning_rate": 0.05,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_alpha": 0.1,
+      "reg_lambda": 1.0,
+      "min_child_weight": 5,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "xgboost",
+    "target": "tmax_c",
+    "mae": 1.2406,
+    "rmse": 1.6053,
+    "r2": 0.9368,
+    "training_time_s": 1.23,
+    "hyperparameters": {
+      "n_estimators": 500,
+      "max_depth": 8,
+      "learning_rate": 0.05,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_alpha": 0.1,
+      "reg_lambda": 1.0,
+      "min_child_weight": 5,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "xgboost",
+    "target": "tmin_c",
+    "mae": 0.943,
+    "rmse": 1.2304,
+    "r2": 0.9725,
+    "training_time_s": 1.23,
+    "hyperparameters": {
+      "n_estimators": 500,
+      "max_depth": 8,
+      "learning_rate": 0.05,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_alpha": 0.1,
+      "reg_lambda": 1.0,
+      "min_child_weight": 5,
+      "random_state": 42
+    }
+  }
+]

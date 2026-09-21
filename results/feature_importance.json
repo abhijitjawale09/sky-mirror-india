@@ -1,0 +1,38 @@
+{
+  "random_forest": {
+    "tmin_lag_1": 26.62,
+    "humidity_lag_1": 24.82,
+    "tmax_lag_1": 13.63,
+    "rainfall_roll_7": 5.52,
+    "diurnal_range_lag_1": 5.52,
+    "day_of_year": 5.47,
+    "tmax_roll_7": 5.28,
+    "rainfall_lag_1": 4.63,
+    "rainfall_lag_7": 3.76,
+    "region_code": 1.31,
+    "month_cos": 1.06,
+    "longitude": 0.83,
+    "month_sin": 0.78,
+    "latitude": 0.78,
+    "insat_lst_lag_1": 0.0,
+    "insat_sst_lag_1": 0.0
+  },
+  "xgboost": {
+    "tmax_lag_1": 24.64,
+    "month_cos": 18.5,
+    "tmin_lag_1": 14.76,
+    "humidity_lag_1": 6.44,
+    "tmax_roll_7": 6.19,
+    "latitude": 4.44,
+    "month_sin": 4.31,
+    "longitude": 3.47,
+    "diurnal_range_lag_1": 3.3,
+    "region_code": 3.06,
+    "rainfall_lag_1": 2.9,
+    "day_of_year": 2.71,
+    "rainfall_roll_7": 2.64,
+    "rainfall_lag_7": 2.64,
+    "insat_lst_lag_1": 0.0,
+    "insat_sst_lag_1": 0.0
+  }
+}

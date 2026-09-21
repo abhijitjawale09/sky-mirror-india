@@ -32,8 +32,9 @@
       <span>Extreme Events</span>
     </button>
     <button class="tab-btn" data-tab="scorecard" role="tab" aria-selected="false" id="tab-scorecard-btn">
-      <span class="tab-icon">🔬</span>
-      <span>Model Scorecard</span>
+      <span class="tab-icon">⚖️</span>
+      <span>Model Comparison</span>
+      <span class="nav-counter-pill">4 Models</span>
     </button>
     <button class="tab-btn" data-tab="replay" role="tab" aria-selected="false" id="tab-replay-btn">
       <span class="tab-icon">⏳</span>
@@ -275,12 +276,71 @@
       </div>
     </aside>
   </div>
+
+  <!-- Cockpit Multi-Model Accuracy & Comparison Overview Card -->
+  {% if state.model_comparison_detailed and state.model_comparison_detailed.overall_ranking %}
+  <div class="glass-panel reveal delay-2" style="margin-top: 1.2rem; padding: 1.2rem 1.6rem; border-left: 4px solid var(--cyan);">
+    <div class="panel-head compact" style="margin-bottom: 0.8rem;">
+      <div>
+        <div class="section-label" style="color: var(--cyan);">ISRO BAH 2026 BENCHMARK</div>
+        <h3 style="font-size: 1.25rem;">⚖️ Multi-Model Predictive Accuracy & Performance Comparison</h3>
+      </div>
+      <button class="primary-button" id="jump-to-scorecard-btn" style="padding: 0.5rem 1.1rem; font-size: 0.85rem;">
+        Open Full Comparison & Difference Analysis ➔
+      </button>
+    </div>
+    <p class="muted" style="font-size: 0.88rem; margin-bottom: 1rem;">
+      4 Machine Learning architectures trained and evaluated on identical 70/15/15 chronological splits of IMD gridded observations (761 test samples). Compare performance and accuracy deltas below:
+    </p>
+    <div class="leaderboard-grid" style="margin-bottom: 0;">
+      {% for row in state.model_comparison_detailed.overall_ranking %}
+      <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 3px solid {% if row.rank == 1 %}#00f5d4{% elif row.rank == 2 %}#2ecc71{% elif row.rank == 3 %}#ff9f43{% else %}#a55eea{% endif %};">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+          <span style="font-weight: 700; font-size: 0.98rem; color: #fff;">
+            <span class="rank-badge rank-{{ row.rank }}">{{ row.rank }}</span>{{ row.display_name }}
+          </span>
+          <span class="diff-badge {% if row.rank == 1 %}diff-badge-best{% elif row.rank == 2 %}diff-badge-close{% else %}diff-badge-gap{% endif %}">
+            {{ row.badge }}
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin: 0.6rem 0; padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.25); border-radius: 6px;">
+          <div><span class="muted">Accuracy:</span> <strong class="text-cyan">{{ row.overall_accuracy }}%</strong></div>
+          <div><span class="muted">Avg MAE:</span> <strong>{{ row.avg_mae }}</strong></div>
+          <div><span class="muted">Time:</span> <strong>{{ row.training_time }}s</strong></div>
+        </div>
+        <div style="font-size: 0.78rem; color: rgba(240,246,252,0.8); line-height: 1.35; margin-top: 0.3rem;">
+          <strong>Verdict:</strong> {{ row.verdict }}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 </section>
 
 <!-- ============================================================ -->
 <!-- TAB 2: SPATIO-TEMPORAL FORECAST & UNCERTAINTY -->
 <!-- ============================================================ -->
 <section id="view-forecast" class="tab-view">
+  <!-- Model Switcher & Overlay Bar -->
+  <div class="glass-panel" style="margin-bottom: 1rem; padding: 0.8rem 1.4rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.8rem;">
+    <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+      <span style="font-size: 0.82rem; text-transform: uppercase; font-weight: 700; color: var(--cyan); letter-spacing: 0.05em;">Forecasting Engine:</span>
+      <div class="model-switch-pills" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="chip chip-active model-chip" data-model="random_forest" id="btn-model-rf">🌲 Random Forest (Best: Rain, Tmax)</button>
+        <button class="chip model-chip" data-model="hist_gradient_boosting" id="btn-model-hgb">📊 HistGB (Best: Tmin)</button>
+        <button class="chip model-chip" data-model="xgboost" id="btn-model-xgb">⚡ XGBoost</button>
+        <button class="chip model-chip" data-model="lstm" id="btn-model-lstm">🧠 LSTM</button>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.8rem;">
+      <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; cursor: pointer; color: #fff;">
+        <input type="checkbox" id="overlay-all-models-check" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--cyan);" />
+        <span><strong>Compare All 4 Models on Chart</strong></span>
+      </label>
+    </div>
+  </div>
+
   <div class="forecast-layout">
     <div class="glass-panel chart-panel">
       <div class="panel-head">
@@ -601,92 +661,220 @@
         <p class="muted">{{ state.scorecard.total_observations }} records across {{ state.scorecard.total_regions }} pilot regions.</p>
       </article>
       <article class="metric-card">
-        <span>Model Performance Index</span>
-        <strong class="text-green">{{ state.scorecard.model_performance }}%</strong>
-        <p class="muted">Random Forest multi-output regressor evaluation.</p>
+        <span>Architectures Evaluated</span>
+        <strong class="text-green">{{ state.trained_model_names | length }} Models</strong>
+        <p class="muted">Random Forest, XGBoost, HistGB, LSTM.</p>
       </article>
       <article class="metric-card">
-        <span>Forecast Confidence</span>
-        <strong class="text-amber">{{ state.scorecard.forecast_confidence }}%</strong>
-        <p class="muted">300 trees ensemble consistency score.</p>
+        <span>Rainfall Winner</span>
+        <strong class="text-cyan">Random Forest</strong>
+        <p class="muted">Lowest MAE (2.46 mm), R²=0.235.</p>
       </article>
       <article class="metric-card">
-        <span>Temporal Window</span>
-        <strong>{{ state.scorecard.date_range[0] }} to {{ state.scorecard.date_range[1] }}</strong>
-        <p class="muted">Continuous daily time-series sequence.</p>
+        <span>Temperature Winner</span>
+        <strong class="text-amber">RF (Tmax) / HistGB (Tmin)</strong>
+        <p class="muted">Tmax: 1.17°C · Tmin: 0.91°C (R² > 0.94).</p>
       </article>
     </div>
 
-    <!-- Model Comparison Table & Feature Importance -->
-    <div class="dashboard-grid">
-      <!-- Benchmark Table -->
-      <div class="glass-panel">
-        <div class="panel-head compact">
-          <div>
-            <div class="section-label">Validation Benchmark</div>
-            <h3>Persistence Baseline vs. Random Forest Regressor</h3>
-          </div>
-          <span class="tag-badge tag-forecast">MODEL EVALUATION</span>
+    <!-- Overall Architecture Leaderboard Cards -->
+    {% if state.model_comparison_detailed and state.model_comparison_detailed.overall_ranking %}
+    <div class="glass-panel" style="margin-bottom: 1.5rem;">
+      <div class="panel-head compact">
+        <div>
+          <div class="section-label">Overall Benchmark Leaderboard</div>
+          <h3>🏆 Overall Machine Learning Architecture Rankings</h3>
         </div>
+        <span class="tag-badge tag-forecast">CROSS-TARGET EVALUATION</span>
+      </div>
+      <div class="leaderboard-grid" style="padding: 0.8rem 1.2rem;">
+        {% for row in state.model_comparison_detailed.overall_ranking %}
+        <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 4px solid {% if row.rank == 1 %}#00f5d4{% elif row.rank == 2 %}#2ecc71{% elif row.rank == 3 %}#ff9f43{% else %}#a55eea{% endif %};">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-weight: 700; font-size: 1.05rem; color: #fff;">
+              <span class="rank-badge rank-{{ row.rank }}">{{ row.rank }}</span>{{ row.display_name }}
+            </span>
+            <span class="diff-badge {% if row.rank == 1 %}diff-badge-best{% elif row.rank == 2 %}diff-badge-close{% else %}diff-badge-gap{% endif %}">
+              {{ row.badge }}
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 0.6rem 0; padding: 0.5rem 0.8rem; background: rgba(0,0,0,0.25); border-radius: 6px; font-size: 0.82rem;">
+            <div><span class="muted">Accuracy Index:</span> <strong class="text-cyan">{{ row.overall_accuracy }}%</strong></div>
+            <div><span class="muted">Average MAE:</span> <strong>{{ row.avg_mae }}</strong></div>
+            <div><span class="muted">Target Wins:</span> <strong style="color: #2ecc71;">{{ row.wins }} / 3 Targets</strong></div>
+            <div><span class="muted">Train Time:</span> <strong>{{ row.training_time }}s</strong></div>
+          </div>
+          <div style="font-size: 0.8rem; color: rgba(240,246,252,0.85); line-height: 1.4; margin-top: 0.4rem;">
+            <div style="color: var(--cyan); font-weight: 600; margin-bottom: 2px;">Key Strength:</div>
+            {{ row.strengths }}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 
-        <div class="table-responsive">
-          <table class="benchmark-table">
-            <thead>
-              <tr>
-                <th>Target Variable</th>
-                <th>Model</th>
-                <th>MAE</th>
-                <th>RMSE</th>
-                <th>R² Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td rowspan="2" class="var-cell">Rainfall (mm)</td>
-                <td><span class="model-tag baseline-tag">Persistence Baseline</span></td>
-                <td>{{ state.model_comparison.persistence.rainfall_mm.mae }}</td>
-                <td>{{ state.model_comparison.persistence.rainfall_mm.rmse }}</td>
-                <td>{{ state.model_comparison.persistence.rainfall_mm.r2 }}</td>
-              </tr>
-              <tr class="rf-row">
-                <td><span class="model-tag rf-tag">Random Forest (300 Trees)</span></td>
-                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.rainfall_mm.mae }}</strong></td>
-                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.rainfall_mm.rmse }}</strong></td>
-                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.rainfall_mm.r2 }}</strong></td>
-              </tr>
+    <!-- Multi-Model Accuracy & Difference Matrix -->
+    <div class="glass-panel" style="margin-bottom: 1.5rem;">
+      <div class="panel-head compact">
+        <div>
+          <div class="section-label">Detailed Metric Breakdown · Best Model Per Target Variable</div>
+          <h3>⚖️ Multi-Model Accuracy, Error & Difference Matrix</h3>
+        </div>
+        <span class="tag-badge tag-forecast">CHRONOLOGICAL TEST SET (N=761)</span>
+      </div>
 
-              <tr>
-                <td rowspan="2" class="var-cell">Max Temp (°C)</td>
-                <td><span class="model-tag baseline-tag">Persistence Baseline</span></td>
-                <td>{{ state.model_comparison.persistence.tmax_c.mae }}</td>
-                <td>{{ state.model_comparison.persistence.tmax_c.rmse }}</td>
-                <td>{{ state.model_comparison.persistence.tmax_c.r2 }}</td>
-              </tr>
-              <tr class="rf-row">
-                <td><span class="model-tag rf-tag">Random Forest (300 Trees)</span></td>
-                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmax_c.mae }}</strong></td>
-                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmax_c.rmse }}</strong></td>
-                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmax_c.r2 }}</strong></td>
-              </tr>
+      <p class="muted" style="padding: 0.4rem 1.2rem; font-size: 0.85rem; margin-bottom: 0.5rem;">
+        Exact differences calculated against the top-performing model for each target variable. The difference shows the error gap (&Delta; MAE, &Delta; RMSE, and % error increase) of each architecture.
+      </p>
 
-              <tr>
-                <td rowspan="2" class="var-cell">Min Temp (°C)</td>
-                <td><span class="model-tag baseline-tag">Persistence Baseline</span></td>
-                <td>{{ state.model_comparison.persistence.tmin_c.mae }}</td>
-                <td>{{ state.model_comparison.persistence.tmin_c.rmse }}</td>
-                <td>{{ state.model_comparison.persistence.tmin_c.r2 }}</td>
+      <div class="table-responsive" style="padding: 0 1.2rem 1.2rem;">
+        <table class="benchmark-table-pro">
+          <thead>
+            <tr>
+              <th>Target Variable</th>
+              <th>Rank</th>
+              <th>Architecture</th>
+              <th>Test MAE</th>
+              <th>Difference vs Best (&Delta; MAE)</th>
+              <th>Test RMSE</th>
+              <th>&Delta; RMSE vs Best</th>
+              <th>R² Score</th>
+              <th>Accuracy %</th>
+              <th>Train Time</th>
+              <th>Performance Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set target_display = [('rainfall_mm', '🌧️ Rainfall (mm)'), ('tmax_c', '🌡️ Max Temp (°C)'), ('tmin_c', '🌙 Min Temp (°C)')] %}
+            {% for target_key, target_label in target_display %}
+              {% set rows = state.model_comparison_detailed.targets.get(target_key, []) %}
+              {% for row in rows %}
+              <tr class="{% if row.is_best %}best-row{% endif %}">
+                {% if loop.first %}
+                <td rowspan="{{ rows | length }}" style="font-weight: 700; color: #fff; background: rgba(0, 245, 212, 0.03); border-right: 1px solid var(--border); vertical-align: middle;">
+                  {{ target_label }}
+                </td>
+                {% endif %}
+                <td>
+                  <span class="rank-badge rank-{{ row.rank }}">{{ row.rank }}</span>
+                </td>
+                <td>
+                  <strong style="color: #fff;">{{ row.display_name }}</strong>
+                  {% if row.is_best %} 🏆{% endif %}
+                </td>
+                <td>
+                  <strong class="{% if row.is_best %}text-cyan{% endif %}">{{ row.mae }}</strong>
+                </td>
+                <td>
+                  {% if row.is_best %}
+                    <span class="diff-badge diff-badge-best">0.000 (Baseline)</span>
+                  {% else %}
+                    <span class="diff-badge {% if row.diff_mae_pct < 10 %}diff-badge-close{% else %}diff-badge-gap{% endif %}">
+                      +{{ row.diff_mae }} (+{{ row.diff_mae_pct }}%)
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="{% if row.is_best %}text-cyan{% endif %}">{{ row.rmse }}</span>
+                </td>
+                <td>
+                  {% if row.is_best %}
+                    <span class="muted">—</span>
+                  {% else %}
+                    <span class="muted">+{{ row.diff_rmse }} (+{{ row.diff_rmse_pct }}%)</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <strong class="{% if row.is_best %}text-green{% endif %}">{{ row.r2 }}</strong>
+                </td>
+                <td>
+                  <span class="text-cyan">{{ row.accuracy_score }}%</span>
+                </td>
+                <td>
+                  <span class="muted">{{ row.training_time }}s</span>
+                </td>
+                <td>
+                  {% if row.is_best %}
+                    <span class="tag-badge" style="background: rgba(0,245,212,0.2); color: #00f5d4; border: 1px solid var(--cyan);">🥇 Top Model</span>
+                  {% elif row.diff_mae_pct < 10 %}
+                    <span class="tag-badge" style="background: rgba(255,191,117,0.15); color: #ffbf75;">🥈 Close Competitor</span>
+                  {% else %}
+                    <span class="tag-badge" style="background: rgba(165,94,234,0.15); color: #c7ecee;">Higher Error</span>
+                  {% endif %}
+                </td>
               </tr>
-              <tr class="rf-row">
-                <td><span class="model-tag rf-tag">Random Forest (300 Trees)</span></td>
-                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmin_c.mae }}</strong></td>
-                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmin_c.rmse }}</strong></td>
-                <td><strong class="text-cyan">{{ state.model_comparison.random_forest.tmin_c.r2 }}</strong></td>
-              </tr>
-            </tbody>
-          </table>
+              {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Interactive Multi-Model Accuracy & Comparison Chart -->
+    <div class="glass-panel" style="margin-bottom: 1.5rem;">
+      <div class="panel-head compact">
+        <div>
+          <div class="section-label">Interactive Visualization</div>
+          <h3>📊 Interactive Model Accuracy & Error Comparison Graphs</h3>
+        </div>
+        <div class="model-comparison-ctrls">
+          <button class="comp-toggle-btn active" data-metric="rainfall_mae">🌧️ Rainfall MAE</button>
+          <button class="comp-toggle-btn" data-metric="tmax_mae">🌡️ Max Temp MAE</button>
+          <button class="comp-toggle-btn" data-metric="tmin_mae">🌙 Min Temp MAE</button>
+          <button class="comp-toggle-btn" data-metric="r2_score">📊 Accuracy (R² %)</button>
+          <button class="comp-toggle-btn" data-metric="error_gap">📉 Difference vs Best (%)</button>
+          <button class="comp-toggle-btn" data-metric="training_time">⚡ Training Speed</button>
         </div>
       </div>
 
+      <div class="chart-container" style="height: 340px; padding: 0.5rem 1rem;">
+        <canvas id="modelComparisonChart"></canvas>
+      </div>
+      <div style="padding: 0.5rem 1.2rem 1rem; font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+        <span id="comp-chart-subtitle">Lower MAE indicates higher predictive accuracy.</span>
+        <span>Data Source: IMD National Gridded Observations (7 Pilot Zones)</span>
+      </div>
+    </div>
+
+    <!-- Model Comparison Deep-Dive & Why They Differ -->
+    <div class="glass-panel" style="margin-bottom: 1.5rem;">
+      <div class="panel-head compact">
+        <div>
+          <div class="section-label">Scientific Analysis</div>
+          <h3>🔬 Architectural Differences & Why Performance Varies</h3>
+        </div>
+      </div>
+      <div class="leaderboard-grid" style="padding: 0.8rem 1.2rem;">
+        <article class="leaderboard-card" style="border-left: 3px solid #00f5d4;">
+          <h4 style="color: #00f5d4; margin-bottom: 0.4rem;">🌲 Random Forest (Ensemble Bagging)</h4>
+          <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
+            <strong>Why it won Rainfall & Tmax:</strong> The 300 bootstrap-aggregated decision trees average out high-variance predictions, preventing outlier over-estimation on zero-inflated monsoon rainfall events and capturing summer heat plateaus.
+          </p>
+        </article>
+        <article class="leaderboard-card" style="border-left: 3px solid #2ecc71;">
+          <h4 style="color: #2ecc71; margin-bottom: 0.4rem;">📊 HistGradientBoosting (Histogram Boosting)</h4>
+          <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
+            <strong>Why it won Min Temperature:</strong> Discrete 255-bin histogram split evaluation captures subtle overnight radiative cooling gradients better than bagged trees, while natively supporting missing satellite channels.
+          </p>
+        </article>
+        <article class="leaderboard-card" style="border-left: 3px solid #ff9f43;">
+          <h4 style="color: #ff9f43; margin-bottom: 0.4rem;">⚡ XGBoost (Extreme Gradient Boosting)</h4>
+          <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
+            <strong>How it compares:</strong> Excellent on temperature (Rank 2 on Tmin, +4.1% error gap), but slightly overfits extreme rainfall spikes without an asymmetric quantile loss function.
+          </p>
+        </article>
+        <article class="leaderboard-card" style="border-left: 3px solid #a55eea;">
+          <h4 style="color: #a55eea; margin-bottom: 0.4rem;">🧠 LSTM Neural Network (Deep Recurrent)</h4>
+          <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
+            <strong>Why it lagged tree models:</strong> Deep sequence models require 10–30 years of daily continuous records to surpass gradient boosted trees on tabular lag features. On 2 years of daily data (~731 steps), sample scarcity limits generalization.
+          </p>
+        </article>
+      </div>
+    </div>
+
+    <!-- Feature Importance Ranking & Provenance -->
+    <div class="dashboard-grid">
       <!-- Feature Importance Horizontal Bars -->
       <div class="glass-panel">
         <div class="panel-head compact">
@@ -694,7 +882,7 @@
             <div class="section-label">Predictor Weights</div>
             <h3>Feature Importance Ranking</h3>
           </div>
-          <span class="tag-badge tag-forecast">GINI IMPORTANCE</span>
+          <span class="tag-badge tag-forecast">GINI / SPLIT IMPORTANCE</span>
         </div>
 
         <div class="feature-importance-list">
@@ -711,27 +899,27 @@
           {% endfor %}
         </div>
       </div>
-    </div>
 
-    <!-- Data Provenance & Integrity Manifest -->
-    <div class="glass-panel manifest-panel">
-      <div class="panel-head compact">
-        <div>
-          <div class="section-label">Data Architecture</div>
-          <h3>National Dataset Provenance & Scientific Classification</h3>
-        </div>
-      </div>
-      <div class="source-grid">
-        {% for source in state.source_manifest %}
-        <article class="source-card">
-          <div class="source-header">
-            <span>{{ source.name }}</span>
-            <span class="source-badge">National Feed</span>
+      <!-- Data Provenance & Integrity Manifest -->
+      <div class="glass-panel manifest-panel">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Data Architecture</div>
+            <h3>National Dataset Provenance</h3>
           </div>
-          <strong>{{ source.role }}</strong>
-          <p class="muted">{{ source.source }}</p>
-        </article>
-        {% endfor %}
+        </div>
+        <div class="source-grid">
+          {% for source in state.source_manifest %}
+          <article class="source-card">
+            <div class="source-header">
+              <span>{{ source.name }}</span>
+              <span class="source-badge">National Feed</span>
+            </div>
+            <strong>{{ source.role }}</strong>
+            <p class="muted">{{ source.source }}</p>
+          </article>
+          {% endfor %}
+        </div>
       </div>
     </div>
   </div>

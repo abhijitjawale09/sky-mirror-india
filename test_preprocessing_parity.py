@@ -14,6 +14,7 @@ from climate_twin.data.preprocessing import (
     prepare_training_features,
 )
 from climate_twin.services.realtime_preprocess import RealtimePreprocessor, prepare_single_observation
+from climate_twin.data.loader import REGION_PROFILES
 
 
 def load_training_data() -> pd.DataFrame:

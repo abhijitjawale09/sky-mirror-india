@@ -1,0 +1,13 @@
+Model,Target,MAE,RMSE,R²,Training Time (s)
+hist_gradient_boosting,rainfall_mm,2.5241,6.9059,0.131,1.13
+hist_gradient_boosting,tmax_c,1.1771,1.5404,0.9418,1.13
+hist_gradient_boosting,tmin_c,0.9056,1.1937,0.9741,1.13
+lstm,rainfall_mm,3.0393,7.145,0.0698,3.67
+lstm,tmax_c,2.1601,2.7931,0.8085,3.67
+lstm,tmin_c,2.2838,2.8112,0.8565,3.67
+random_forest,rainfall_mm,2.4628,6.4777,0.2354,0.42
+random_forest,tmax_c,1.1716,1.5269,0.9428,0.42
+random_forest,tmin_c,1.0184,1.3109,0.9688,0.42
+xgboost,rainfall_mm,2.7082,7.0577,0.0923,1.23
+xgboost,tmax_c,1.2406,1.6053,0.9368,1.23
+xgboost,tmin_c,0.943,1.2304,0.9725,1.23

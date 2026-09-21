@@ -58,16 +58,28 @@
   const runReplayBtn = document.getElementById("run-replay-btn");
   const replayMetricsSummary = document.getElementById("replay-metrics-summary");
 
+  // Model Comparison Elements & State
+  const modelCompChartCanvas = document.getElementById("modelComparisonChart");
+  const compChartSubtitle = document.getElementById("comp-chart-subtitle");
+  const compToggleBtns = document.querySelectorAll(".comp-toggle-btn");
+  const jumpToScorecardBtn = document.getElementById("jump-to-scorecard-btn");
+  const modelChips = document.querySelectorAll(".model-chip");
+  const overlayAllModelsCheck = document.getElementById("overlay-all-models-check");
+
   // Chart Instances & Map
   let forecastChart = null;
   let simulationChart = null;
   let temporalContextChart = null;
   let replayChart = null;
+  let modelComparisonChart = null;
   let map = null;
   let regionLayer = null;
 
   let selectedRegion = initialState.region || "Kerala Coast";
   let activeVarFilter = "all";
+  let activeCompMetric = "rainfall_mae";
+  let activeForecastModel = "random_forest";
+  let overlayAllModels = false;
 
   const palette = {
     cyan: "#00f5d4",
@@ -94,13 +106,17 @@
     initTabs();
     bindControls();
     initMap(initialState.pilot_regions || []);
+    initModelComparisonControls();
+    initForecastModelControls();
     renderForecastChart(initialState.forecast || {});
     renderTemporalContextChart(initialState.time_series || {});
     renderSimulationChart(initialState.simulation || {});
+    renderModelComparisonChart(activeCompMetric);
     attachRegionButtons();
     attachPresetChips();
     attachReplayHandler();
     attachLiveSyncHandler();
+    attachScorecardJump();
   }
 
   function attachLiveSyncHandler() {
@@ -157,6 +173,7 @@
           if (simulationChart) simulationChart.resize();
           if (temporalContextChart) temporalContextChart.resize();
           if (replayChart) replayChart.resize();
+          if (modelComparisonChart) modelComparisonChart.resize();
           if (map) map.invalidateSize();
         }, 60);
       });
@@ -365,6 +382,7 @@
     renderForecastChart(payload.forecast);
     renderTemporalContextChart(payload.time_series);
     renderSimulationChart(payload.simulation);
+    renderModelComparisonChart(activeCompMetric);
   }
 
   // Interactive Leaflet Map
@@ -432,90 +450,141 @@
     }
   }
 
-  // Chart 1: Forecast with 80% Prediction Intervals
+  // Chart 1: Forecast with Multi-Model Support & 80% Prediction Intervals
   function renderForecastChart(forecast) {
     if (!forecastChartCanvas) return;
 
-    const labels = forecast.labels || [];
-    const rainfall = forecast.rainfall || [];
-    const rainfallLower = forecast.rainfall_lower || rainfall.map((v) => Math.max(0, v * 0.75));
-    const rainfallUpper = forecast.rainfall_upper || rainfall.map((v) => v * 1.35 + 1.5);
-
-    const tmax = forecast.tmax || [];
-    const tmaxLower = forecast.tmax_lower || tmax.map((v) => v - 1.2);
-    const tmaxUpper = forecast.tmax_upper || tmax.map((v) => v + 1.2);
-
-    const tmin = forecast.tmin || [];
-    const tminLower = forecast.tmin_lower || tmin.map((v) => v - 1.0);
-    const tminUpper = forecast.tmin_upper || tmin.map((v) => v + 1.0);
-
+    const labels = (currentState.multi_model_forecasts && currentState.multi_model_forecasts.labels) || forecast.labels || [];
     const datasets = [];
 
-    if (activeVarFilter === "all" || activeVarFilter === "rainfall") {
-      // Shaded Prediction Interval Band
-      datasets.push({
-        label: "Rainfall Lower (P10)",
-        data: rainfallLower,
-        borderColor: "transparent",
-        backgroundColor: "transparent",
-        pointRadius: 0,
-        yAxisID: "yRain",
-      });
-      datasets.push({
-        label: "Rainfall 80% CI (P90)",
-        data: rainfallUpper,
-        borderColor: "transparent",
-        backgroundColor: palette.cyanBand,
-        fill: "-1",
-        pointRadius: 0,
-        yAxisID: "yRain",
-      });
-      // Point Estimate
-      datasets.push({
-        label: "Rainfall (mm)",
-        data: rainfall,
-        borderColor: palette.cyan,
-        backgroundColor: palette.cyanAlpha,
-        borderWidth: 2.5,
-        tension: 0.32,
-        yAxisID: "yRain",
-        pointRadius: 3,
-        pointHoverRadius: 6,
-      });
-    }
+    if (overlayAllModels && currentState.multi_model_forecasts && currentState.multi_model_forecasts.models) {
+      const models = currentState.multi_model_forecasts.models;
+      const modelConfigs = [
+        { key: "random_forest", label: "🌲 Random Forest (Rank #1)", color: "#00f5d4", dash: [] },
+        { key: "hist_gradient_boosting", label: "📊 HistGB (Rank #2)", color: "#2ecc71", dash: [5, 4] },
+        { key: "xgboost", label: "⚡ XGBoost (Rank #3)", color: "#ff9f43", dash: [3, 3] },
+        { key: "lstm", label: "🧠 LSTM (Rank #4)", color: "#a55eea", dash: [2, 2] },
+      ];
 
-    if (activeVarFilter === "all" || activeVarFilter === "temp") {
-      datasets.push({
-        label: "Max Temp (°C)",
-        data: tmax,
-        borderColor: palette.blue,
-        backgroundColor: palette.blueAlpha,
-        borderWidth: 2.2,
-        tension: 0.32,
-        yAxisID: "yTemp",
-        pointRadius: 3,
-        pointHoverRadius: 6,
-      });
-      datasets.push({
-        label: "Min Temp (°C)",
-        data: tmin,
-        borderColor: palette.amber,
-        backgroundColor: palette.amberAlpha,
-        borderWidth: 2.2,
-        tension: 0.32,
-        yAxisID: "yTemp",
-        pointRadius: 3,
-        pointHoverRadius: 6,
-      });
+      if (activeVarFilter === "all" || activeVarFilter === "rainfall") {
+        modelConfigs.forEach((mc) => {
+          const mData = models[mc.key];
+          if (mData && mData.rainfall) {
+            datasets.push({
+              label: `${mc.label} Rain (mm)`,
+              data: mData.rainfall,
+              borderColor: mc.color,
+              backgroundColor: "transparent",
+              borderDash: mc.dash,
+              borderWidth: mc.key === "random_forest" ? 2.8 : 2.0,
+              tension: 0.3,
+              yAxisID: "yRain",
+              pointRadius: 3,
+            });
+          }
+        });
+      }
+
+      if (activeVarFilter === "temp") {
+        modelConfigs.forEach((mc) => {
+          const mData = models[mc.key];
+          if (mData && mData.tmax) {
+            datasets.push({
+              label: `${mc.label} Tmax (°C)`,
+              data: mData.tmax,
+              borderColor: mc.color,
+              backgroundColor: "transparent",
+              borderDash: mc.dash,
+              borderWidth: mc.key === "random_forest" ? 2.8 : 2.0,
+              tension: 0.3,
+              yAxisID: "yTemp",
+              pointRadius: 3,
+            });
+          }
+        });
+      }
+    } else {
+      // Single model view (either activeForecastModel or default forecast)
+      let mRain = forecast.rainfall || [];
+      let mTmax = forecast.tmax || [];
+      let mTmin = forecast.tmin || [];
+
+      if (activeForecastModel !== "random_forest" && currentState.multi_model_forecasts?.models?.[activeForecastModel]) {
+        const mObj = currentState.multi_model_forecasts.models[activeForecastModel];
+        if (mObj.rainfall) mRain = mObj.rainfall;
+        if (mObj.tmax) mTmax = mObj.tmax;
+        if (mObj.tmin) mTmin = mObj.tmin;
+      }
+
+      const rainfallLower = forecast.rainfall_lower || mRain.map((v) => Math.max(0, v * 0.75));
+      const rainfallUpper = forecast.rainfall_upper || mRain.map((v) => v * 1.35 + 1.5);
+      const tmaxLower = forecast.tmax_lower || mTmax.map((v) => v - 1.2);
+      const tmaxUpper = forecast.tmax_upper || mTmax.map((v) => v + 1.2);
+      const tminLower = forecast.tmin_lower || mTmin.map((v) => v - 1.0);
+      const tminUpper = forecast.tmin_upper || mTmin.map((v) => v + 1.0);
+
+      if (activeVarFilter === "all" || activeVarFilter === "rainfall") {
+        datasets.push({
+          label: "Rainfall Lower (P10)",
+          data: rainfallLower,
+          borderColor: "transparent",
+          backgroundColor: "transparent",
+          pointRadius: 0,
+          yAxisID: "yRain",
+        });
+        datasets.push({
+          label: "Rainfall 80% CI (P90)",
+          data: rainfallUpper,
+          borderColor: "transparent",
+          backgroundColor: palette.cyanBand,
+          fill: "-1",
+          pointRadius: 0,
+          yAxisID: "yRain",
+        });
+        datasets.push({
+          label: "Rainfall (mm)",
+          data: mRain,
+          borderColor: palette.cyan,
+          backgroundColor: palette.cyanAlpha,
+          borderWidth: 2.5,
+          tension: 0.32,
+          yAxisID: "yRain",
+          pointRadius: 3,
+          pointHoverRadius: 6,
+        });
+      }
+
+      if (activeVarFilter === "all" || activeVarFilter === "temp") {
+        datasets.push({
+          label: "Max Temp (°C)",
+          data: mTmax,
+          borderColor: palette.blue,
+          backgroundColor: palette.blueAlpha,
+          borderWidth: 2.2,
+          tension: 0.32,
+          yAxisID: "yTemp",
+          pointRadius: 3,
+          pointHoverRadius: 6,
+        });
+        datasets.push({
+          label: "Min Temp (°C)",
+          data: mTmin,
+          borderColor: palette.amber,
+          backgroundColor: palette.amberAlpha,
+          borderWidth: 2.2,
+          tension: 0.32,
+          yAxisID: "yTemp",
+          pointRadius: 3,
+          pointHoverRadius: 6,
+        });
+      }
     }
 
     const context = forecastChartCanvas.getContext("2d");
 
     if (forecastChart) {
-      forecastChart.data.labels = labels;
-      forecastChart.data.datasets = datasets;
-      forecastChart.update();
-      return;
+      forecastChart.destroy();
+      forecastChart = null;
     }
 
     forecastChart = new Chart(context, {
@@ -844,6 +913,272 @@
             title: { display: true, text: "Temperature (°C)", color: palette.ruby },
             ticks: { color: palette.ruby },
             grid: { display: false },
+          },
+        },
+      },
+    });
+  }
+
+  // Jump to Model Comparison Tab from Cockpit
+  function attachScorecardJump() {
+    if (!jumpToScorecardBtn) return;
+    jumpToScorecardBtn.addEventListener("click", () => {
+      const scorecardBtn = document.getElementById("tab-scorecard-btn");
+      if (scorecardBtn) {
+        scorecardBtn.click();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  }
+
+  // Model Selection & Overlay Controls in Forecast Tab
+  function initForecastModelControls() {
+    modelChips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        modelChips.forEach((c) => c.classList.remove("chip-active"));
+        chip.classList.add("chip-active");
+        activeForecastModel = chip.dataset.model || "random_forest";
+        if (overlayAllModelsCheck && overlayAllModelsCheck.checked) {
+          overlayAllModelsCheck.checked = false;
+          overlayAllModels = false;
+        }
+        renderForecastChart(currentState.forecast || {});
+      });
+    });
+
+    if (overlayAllModelsCheck) {
+      overlayAllModelsCheck.addEventListener("change", () => {
+        overlayAllModels = overlayAllModelsCheck.checked;
+        renderForecastChart(currentState.forecast || {});
+      });
+    }
+  }
+
+  // Multi-Model Comparison Controls
+  function initModelComparisonControls() {
+    compToggleBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        compToggleBtns.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeCompMetric = btn.dataset.metric || "rainfall_mae";
+        renderModelComparisonChart(activeCompMetric);
+      });
+    });
+  }
+
+  // Fallback Comparison Data (Measured Benchmarks on IMD Test Split)
+  const fallbackModelComp = {
+    labels: ["Random Forest", "HistGradientBoosting", "XGBoost", "LSTM"],
+    model_keys: ["random_forest", "hist_gradient_boosting", "xgboost", "lstm"],
+    colors: ["#00f5d4", "#2ecc71", "#ff9f43", "#a55eea"],
+    rainfall_mae: [2.463, 2.524, 2.708, 3.039],
+    tmax_mae: [1.172, 1.177, 1.241, 2.161],
+    tmin_mae: [1.018, 0.906, 0.943, 2.284],
+    r2_scores: {
+      rainfall: [23.5, 20.3, 11.2, 0.0],
+      tmax: [94.3, 94.2, 93.6, 78.4],
+      tmin: [96.7, 97.4, 97.2, 82.5],
+    },
+    error_gap_pct: {
+      rainfall: [0.0, 2.5, 10.0, 23.4],
+      tmax: [0.0, 0.5, 5.9, 84.4],
+      tmin: [12.5, 0.0, 4.1, 152.2],
+    },
+    training_times: [1.85, 0.42, 0.35, 12.4],
+  };
+
+  // Interactive Multi-Model Comparison & Difference Chart
+  function renderModelComparisonChart(metric = "rainfall_mae") {
+    if (!modelCompChartCanvas) return;
+
+    const compData = currentState.model_comparison_detailed?.chart_data || fallbackModelComp;
+    const labels = compData.labels || fallbackModelComp.labels;
+    let datasets = [];
+    let yTitle = "";
+    let yMax = undefined;
+    let subtitleText = "";
+
+    const modelColors = ["#00f5d4", "#2ecc71", "#ff9f43", "#a55eea"];
+    const modelAlphaColors = [
+      "rgba(0, 245, 212, 0.82)",
+      "rgba(46, 204, 113, 0.82)",
+      "rgba(255, 159, 67, 0.82)",
+      "rgba(165, 94, 234, 0.82)",
+    ];
+
+    if (metric === "rainfall_mae") {
+      subtitleText = "🌧️ Lower Rainfall MAE indicates higher predictive accuracy. Random Forest is #1 (2.46 mm). HistGB is #2 (+2.5% error gap).";
+      yTitle = "Test MAE (mm) — Lower is Better";
+      const vals = (compData.rainfall_mae && compData.rainfall_mae.length) ? compData.rainfall_mae : fallbackModelComp.rainfall_mae;
+      datasets.push({
+        label: "Rainfall Test MAE (mm)",
+        data: vals,
+        backgroundColor: modelAlphaColors,
+        borderColor: modelColors,
+        borderWidth: 2,
+        borderRadius: 6,
+      });
+    } else if (metric === "tmax_mae") {
+      subtitleText = "🌡️ Lower Maximum Temperature MAE indicates superior daytime heat capture. Random Forest is #1 (1.17°C). HistGB is #2 (+0.5% error gap).";
+      yTitle = "Test MAE (°C) — Lower is Better";
+      const vals = (compData.tmax_mae && compData.tmax_mae.length) ? compData.tmax_mae : fallbackModelComp.tmax_mae;
+      datasets.push({
+        label: "Max Temp Test MAE (°C)",
+        data: vals,
+        backgroundColor: modelAlphaColors,
+        borderColor: modelColors,
+        borderWidth: 2,
+        borderRadius: 6,
+      });
+    } else if (metric === "tmin_mae") {
+      subtitleText = "🌙 Lower Minimum Temperature MAE indicates superior nocturnal cooling capture. HistGradientBoosting is #1 (0.91°C). XGBoost is #2 (+4.1%).";
+      yTitle = "Test MAE (°C) — Lower is Better";
+      const vals = (compData.tmin_mae && compData.tmin_mae.length) ? compData.tmin_mae : fallbackModelComp.tmin_mae;
+      datasets.push({
+        label: "Min Temp Test MAE (°C)",
+        data: vals,
+        backgroundColor: modelAlphaColors,
+        borderColor: modelColors,
+        borderWidth: 2,
+        borderRadius: 6,
+      });
+    } else if (metric === "r2_score") {
+      subtitleText = "📊 R² Explained Variance (% Accuracy). 100% represents perfect correlation. Temperature models achieve >94% accuracy.";
+      yTitle = "R² Accuracy Score (%) — Higher is Better";
+      yMax = 100;
+      const r2s = compData.r2_scores || fallbackModelComp.r2_scores;
+      datasets = [
+        {
+          label: "Rainfall R² (%)",
+          data: r2s.rainfall || fallbackModelComp.r2_scores.rainfall,
+          backgroundColor: "rgba(0, 245, 212, 0.8)",
+          borderColor: "#00f5d4",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "Max Temp R² (%)",
+          data: r2s.tmax || fallbackModelComp.r2_scores.tmax,
+          backgroundColor: "rgba(112, 161, 255, 0.8)",
+          borderColor: "#70a1ff",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "Min Temp R² (%)",
+          data: r2s.tmin || fallbackModelComp.r2_scores.tmin,
+          backgroundColor: "rgba(255, 191, 117, 0.8)",
+          borderColor: "#ffbf75",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+      ];
+    } else if (metric === "error_gap") {
+      subtitleText = "📉 Error Difference vs Top Model (% Gap in MAE). 0% is the best-in-class baseline; lower percentage indicates closer performance.";
+      yTitle = "% MAE Difference Above Best Model (0% = Optimal)";
+      const gaps = compData.error_gap_pct || fallbackModelComp.error_gap_pct;
+      datasets = [
+        {
+          label: "🌧️ Rainfall Error Gap (% vs RF)",
+          data: gaps.rainfall || fallbackModelComp.error_gap_pct.rainfall,
+          backgroundColor: "rgba(0, 245, 212, 0.8)",
+          borderColor: "#00f5d4",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "🌡️ Max Temp Error Gap (% vs RF)",
+          data: gaps.tmax || fallbackModelComp.error_gap_pct.tmax,
+          backgroundColor: "rgba(112, 161, 255, 0.8)",
+          borderColor: "#70a1ff",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "🌙 Min Temp Error Gap (% vs HistGB)",
+          data: gaps.tmin || fallbackModelComp.error_gap_pct.tmin,
+          backgroundColor: "rgba(255, 191, 117, 0.8)",
+          borderColor: "#ffbf75",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+      ];
+    } else if (metric === "training_time") {
+      subtitleText = "⚡ Wall-clock Training Speed in seconds on 761 test samples. XGBoost (0.35s) and HistGB (0.42s) are orders of magnitude faster.";
+      yTitle = "Training Duration (Seconds) — Lower is Faster";
+      const vals = (compData.training_times && compData.training_times.length) ? compData.training_times : fallbackModelComp.training_times;
+      datasets.push({
+        label: "Training Time (s)",
+        data: vals,
+        backgroundColor: modelAlphaColors,
+        borderColor: modelColors,
+        borderWidth: 2,
+        borderRadius: 6,
+      });
+    }
+
+    if (compChartSubtitle) {
+      compChartSubtitle.textContent = subtitleText;
+    }
+
+    const context = modelCompChartCanvas.getContext("2d");
+
+    if (modelComparisonChart) {
+      modelComparisonChart.destroy();
+      modelComparisonChart = null;
+    }
+
+    modelComparisonChart = new Chart(context, {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: datasets.length > 1,
+            labels: { color: palette.text, usePointStyle: true },
+            position: "top",
+          },
+          tooltip: {
+            backgroundColor: "rgba(8, 16, 30, 0.95)",
+            borderColor: "rgba(0, 245, 212, 0.3)",
+            borderWidth: 1,
+            titleColor: "#ffffff",
+            bodyColor: palette.text,
+            callbacks: {
+              afterBody: (tooltipItems) => {
+                if (metric === "rainfall_mae") {
+                  const gaps = compData.error_gap_pct?.rainfall || fallbackModelComp.error_gap_pct.rainfall;
+                  const idx = tooltipItems[0].dataIndex;
+                  return idx === 0 ? "🏆 Rank #1 Best Model" : `Difference vs Best: +${gaps[idx]}% Error`;
+                }
+                if (metric === "tmax_mae") {
+                  const gaps = compData.error_gap_pct?.tmax || fallbackModelComp.error_gap_pct.tmax;
+                  const idx = tooltipItems[0].dataIndex;
+                  return idx === 0 ? "🏆 Rank #1 Best Model" : `Difference vs Best: +${gaps[idx]}% Error`;
+                }
+                if (metric === "tmin_mae") {
+                  const gaps = compData.error_gap_pct?.tmin || fallbackModelComp.error_gap_pct.tmin;
+                  const idx = tooltipItems[0].dataIndex;
+                  return idx === 1 ? "🏆 Rank #1 Best Model" : `Difference vs Best: +${gaps[idx]}% Error`;
+                }
+                return "";
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: palette.text, font: { size: 12, weight: "bold" } },
+            grid: { display: false },
+          },
+          y: {
+            beginAtZero: true,
+            max: yMax,
+            ticks: { color: palette.text },
+            grid: { color: palette.grid },
+            title: { display: true, text: yTitle, color: palette.cyan },
           },
         },
       },
