@@ -86,6 +86,39 @@ def model_comparison() -> tuple[object, int]:
     }), 200
 
 
+@main_bp.get("/api/forecast-7day")
+def forecast_7day() -> tuple[object, int]:
+    """Return a structured 7-day climate forecast for a region or custom coordinates."""
+    engine = current_app.extensions["digital_twin_engine"]
+
+    region = request.args.get("region")
+    lat_str = request.args.get("lat")
+    lon_str = request.args.get("lon")
+
+    try:
+        lat = float(lat_str) if lat_str else None
+        lon = float(lon_str) if lon_str else None
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid latitude or longitude values."}), 400
+
+    if lat is not None and lon is not None:
+        # Validate coordinate ranges
+        if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+            return jsonify({"error": "Coordinates out of range."}), 400
+        result = engine.get_seven_day_forecast(latitude=lat, longitude=lon, region_name=region)
+    elif region:
+        result = engine.get_seven_day_forecast(region_name=region)
+    else:
+        # Default to the currently configured pilot region
+        default_region = current_app.config.get("PILOT_REGION", "Kerala Coast")
+        result = engine.get_seven_day_forecast(region_name=default_region)
+
+    if result.get("error"):
+        return jsonify(result), 502
+
+    return jsonify(result), 200
+
+
 @main_bp.get("/health")
 def health() -> tuple[dict[str, str], int]:
     return {"status": "ok"}, 200

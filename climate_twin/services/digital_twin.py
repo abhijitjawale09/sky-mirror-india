@@ -11,6 +11,7 @@ from ..data.loader import REGION_PROFILES, get_region_profile, latest_snapshot, 
 from .forecasting import ClimateForecaster
 from .live_feed import LiveFeedService, LiveSyncResult
 from .real_time_conditions import RealTimeConditions
+from .seven_day_forecast import SevenDayForecastService
 from .twin_simulation import TwinScenario, build_replay_result, build_simulation_result
 from .twin_state import build_twin_state
 
@@ -33,6 +34,7 @@ class DigitalTwinEngine:
         self.forecaster = ClimateForecaster()
         self.metrics = self.forecaster.fit(self.training_observations)
         self.real_time_conditions = RealTimeConditions(self.training_observations)
+        self.seven_day_forecast_service = SevenDayForecastService()
 
         # Live Real-Time Ingestion Layer
         self.live_feed = LiveFeedService(past_days=30)
@@ -47,6 +49,21 @@ class DigitalTwinEngine:
                 "source": "Historical IMD Dataset",
                 "error": str(err),
             }
+
+    def get_seven_day_forecast(
+        self,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        region_name: str | None = None,
+    ) -> dict:
+        """Return a structured 7-day forecast for coordinates or a named region."""
+        if region_name and (latitude is None or longitude is None):
+            return self.seven_day_forecast_service.get_forecast_for_region(region_name)
+        if latitude is not None and longitude is not None:
+            return self.seven_day_forecast_service.get_forecast(latitude, longitude, region_name)
+        # Fallback: use default pilot region
+        default_region = REGION_PROFILES[0].name
+        return self.seven_day_forecast_service.get_forecast_for_region(default_region)
 
     def sync_live_feed(self) -> LiveSyncResult:
         """Trigger an instant live stream synchronization across all 7 pilot regions."""

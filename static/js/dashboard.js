@@ -66,12 +66,29 @@
   const modelChips = document.querySelectorAll(".model-chip");
   const overlayAllModelsCheck = document.getElementById("overlay-all-models-check");
 
+  // 7-Day Forecast Elements
+  const f7dLocationSelect = document.getElementById("f7d-location-select");
+  const f7dCustomCoords = document.getElementById("f7d-custom-coords");
+  const f7dLatInput = document.getElementById("f7d-lat");
+  const f7dLonInput = document.getElementById("f7d-lon");
+  const f7dSearchBtn = document.getElementById("f7d-search-btn");
+  const f7dLastUpdated = document.getElementById("f7d-last-updated");
+  const f7dLoading = document.getElementById("f7d-loading");
+  const f7dError = document.getElementById("f7d-error");
+  const f7dErrorMessage = document.getElementById("f7d-error-message");
+  const f7dCardsContainer = document.getElementById("f7d-cards-container");
+  const f7dCards = document.getElementById("f7d-cards");
+  const f7dTempChartCanvas = document.getElementById("f7dTempChart");
+  const f7dRainfallChartCanvas = document.getElementById("f7dRainfallChart");
+
   // Chart Instances & Map
   let forecastChart = null;
   let simulationChart = null;
   let temporalContextChart = null;
   let replayChart = null;
   let modelComparisonChart = null;
+  let f7dTempChart = null;
+  let f7dRainfallChart = null;
   let map = null;
   let regionLayer = null;
 
@@ -80,6 +97,7 @@
   let activeCompMetric = "rainfall_mae";
   let activeForecastModel = "random_forest";
   let overlayAllModels = false;
+  let f7dFetched = false;
 
   const palette = {
     cyan: "#00f5d4",
@@ -117,6 +135,7 @@
     attachReplayHandler();
     attachLiveSyncHandler();
     attachScorecardJump();
+    init7DayForecast();
   }
 
   function attachLiveSyncHandler() {
@@ -174,8 +193,15 @@
           if (temporalContextChart) temporalContextChart.resize();
           if (replayChart) replayChart.resize();
           if (modelComparisonChart) modelComparisonChart.resize();
+          if (f7dTempChart) f7dTempChart.resize();
+          if (f7dRainfallChart) f7dRainfallChart.resize();
           if (map) map.invalidateSize();
         }, 60);
+
+        // Lazy-load 7-day forecast on first visit
+        if (targetTab === "7day" && !f7dFetched) {
+          fetch7DayForecast();
+        }
       });
     });
 
@@ -1179,6 +1205,297 @@
             ticks: { color: palette.text },
             grid: { color: palette.grid },
             title: { display: true, text: yTitle, color: palette.cyan },
+          },
+        },
+      },
+    });
+  }
+
+  // =================================================================
+  // 7-DAY FORECAST MODULE
+  // =================================================================
+
+  function init7DayForecast() {
+    // Location selector change handler
+    if (f7dLocationSelect) {
+      f7dLocationSelect.addEventListener("change", () => {
+        const val = f7dLocationSelect.value;
+        if (val === "__custom__") {
+          if (f7dCustomCoords) f7dCustomCoords.style.display = "flex";
+        } else {
+          if (f7dCustomCoords) f7dCustomCoords.style.display = "none";
+          fetch7DayForecast({ region: val });
+        }
+      });
+    }
+
+    // Custom coordinate search
+    if (f7dSearchBtn) {
+      f7dSearchBtn.addEventListener("click", () => {
+        const lat = f7dLatInput ? parseFloat(f7dLatInput.value) : NaN;
+        const lon = f7dLonInput ? parseFloat(f7dLonInput.value) : NaN;
+        if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+          showF7dError("Please enter valid coordinates (Lat: -90 to 90, Lon: -180 to 180).");
+          return;
+        }
+        fetch7DayForecast({ lat, lon });
+      });
+    }
+  }
+
+  async function fetch7DayForecast(params) {
+    const queryParams = params || { region: selectedRegion };
+    const qs = new URLSearchParams();
+    if (queryParams.region) qs.set("region", queryParams.region);
+    if (queryParams.lat !== undefined) qs.set("lat", queryParams.lat);
+    if (queryParams.lon !== undefined) qs.set("lon", queryParams.lon);
+
+    // Show loading, hide error and cards
+    if (f7dLoading) f7dLoading.style.display = "flex";
+    if (f7dError) f7dError.style.display = "none";
+    if (f7dCardsContainer) f7dCardsContainer.style.display = "none";
+
+    try {
+      const response = await fetch(`/api/forecast-7day?${qs.toString()}`);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `API error (${response.status})`);
+      }
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data.days || data.days.length === 0) {
+        throw new Error("No forecast data available for this location.");
+      }
+
+      f7dFetched = true;
+      if (f7dLoading) f7dLoading.style.display = "none";
+      if (f7dCardsContainer) f7dCardsContainer.style.display = "block";
+
+      // Update last-updated
+      if (f7dLastUpdated) f7dLastUpdated.textContent = data.last_updated || "—";
+
+      renderF7dCards(data.days);
+      renderF7dTempChart(data.days);
+      renderF7dRainfallChart(data.days);
+    } catch (err) {
+      console.error("7-day forecast error:", err);
+      if (f7dLoading) f7dLoading.style.display = "none";
+      showF7dError(err.message);
+    }
+  }
+
+  function showF7dError(message) {
+    if (f7dError) {
+      f7dError.style.display = "flex";
+      if (f7dErrorMessage) f7dErrorMessage.textContent = message;
+    }
+    if (f7dCardsContainer) f7dCardsContainer.style.display = "none";
+  }
+
+  function renderF7dCards(days) {
+    if (!f7dCards) return;
+
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    f7dCards.innerHTML = days.map((day, i) => {
+      const isToday = day.date === todayStr;
+      const todayClass = isToday ? " f7d-card-today" : "";
+      const todayLabel = isToday ? ' <span style="font-size:0.65rem;color:var(--cyan);">(Today)</span>' : "";
+
+      return `
+        <article class="f7d-card${todayClass}">
+          <div class="f7d-day-name">${day.day_short}${todayLabel}</div>
+          <div class="f7d-date">${day.date_display}</div>
+          <div class="f7d-icon">${day.condition_icon}</div>
+          <div class="f7d-condition">${day.condition}</div>
+          <div class="f7d-temps">
+            <span class="f7d-tmax">${day.tmax_c}°</span>
+            <span class="f7d-tmin">${day.tmin_c}°</span>
+          </div>
+          <div class="f7d-divider"></div>
+          <div class="f7d-detail-grid">
+            <div class="f7d-detail">
+              <span class="f7d-detail-label">Rain Prob</span>
+              <span class="f7d-detail-value">${day.rainfall_probability_pct}%</span>
+            </div>
+            <div class="f7d-detail">
+              <span class="f7d-detail-label">Rainfall</span>
+              <span class="f7d-detail-value">${day.rainfall_mm} mm</span>
+            </div>
+            <div class="f7d-detail">
+              <span class="f7d-detail-label">Humidity</span>
+              <span class="f7d-detail-value">${day.humidity_pct}%</span>
+            </div>
+            <div class="f7d-detail">
+              <span class="f7d-detail-label">Wind</span>
+              <span class="f7d-detail-value">${day.wind_speed_kmh} km/h</span>
+            </div>
+            <div class="f7d-detail">
+              <span class="f7d-detail-label">Direction</span>
+              <span class="f7d-detail-value">${day.wind_direction}</span>
+            </div>
+            <div class="f7d-detail">
+              <span class="f7d-detail-label">UV Index</span>
+              <span class="f7d-detail-value">${day.uv_index}</span>
+            </div>
+          </div>
+          <div class="f7d-confidence ${day.confidence.class}">
+            ${day.confidence.level} Confidence
+          </div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  function renderF7dTempChart(days) {
+    if (!f7dTempChartCanvas) return;
+
+    const labels = days.map((d) => `${d.day_short}\n${d.date_display}`);
+    const tmaxData = days.map((d) => d.tmax_c);
+    const tminData = days.map((d) => d.tmin_c);
+
+    if (f7dTempChart) f7dTempChart.destroy();
+
+    f7dTempChart = new Chart(f7dTempChartCanvas, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Max Temp (°C)",
+            data: tmaxData,
+            borderColor: palette.amber,
+            backgroundColor: palette.amberAlpha,
+            borderWidth: 2.5,
+            tension: 0.35,
+            pointRadius: 5,
+            pointBackgroundColor: palette.amber,
+            pointBorderColor: "#041019",
+            pointBorderWidth: 2,
+            fill: false,
+          },
+          {
+            label: "Min Temp (°C)",
+            data: tminData,
+            borderColor: palette.blue,
+            backgroundColor: palette.blueAlpha,
+            borderWidth: 2.5,
+            tension: 0.35,
+            pointRadius: 5,
+            pointBackgroundColor: palette.blue,
+            pointBorderColor: "#041019",
+            pointBorderWidth: 2,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(4, 16, 25, 0.95)",
+            titleColor: "#fff",
+            bodyColor: palette.text,
+            borderColor: "rgba(130, 185, 255, 0.25)",
+            borderWidth: 1,
+            padding: 12,
+            callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                return `${days[idx].day_name}, ${days[idx].date_display}`;
+              },
+              afterBody: (items) => {
+                return "Predicted — Forecast";
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: palette.text, font: { size: 11 } },
+            grid: { color: palette.grid },
+            title: { display: true, text: "Day", color: palette.text },
+          },
+          y: {
+            ticks: { color: palette.text },
+            grid: { color: palette.grid },
+            title: { display: true, text: "Temperature (°C)", color: palette.amber },
+          },
+        },
+      },
+    });
+  }
+
+  function renderF7dRainfallChart(days) {
+    if (!f7dRainfallChartCanvas) return;
+
+    const labels = days.map((d) => `${d.day_short}\n${d.date_display}`);
+    const rainfallData = days.map((d) => d.rainfall_mm);
+
+    if (f7dRainfallChart) f7dRainfallChart.destroy();
+
+    f7dRainfallChart = new Chart(f7dRainfallChartCanvas, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Predicted Rainfall (mm)",
+            data: rainfallData,
+            backgroundColor: rainfallData.map((v) =>
+              v > 20 ? "rgba(0, 245, 212, 0.65)" :
+              v > 5  ? "rgba(0, 245, 212, 0.45)" :
+                       "rgba(0, 245, 212, 0.25)"
+            ),
+            borderColor: palette.cyan,
+            borderWidth: 1,
+            borderRadius: 6,
+            borderSkipped: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(4, 16, 25, 0.95)",
+            titleColor: "#fff",
+            bodyColor: palette.text,
+            borderColor: "rgba(130, 185, 255, 0.25)",
+            borderWidth: 1,
+            padding: 12,
+            callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                return `${days[idx].day_name}, ${days[idx].date_display}`;
+              },
+              afterBody: (items) => {
+                const idx = items[0].dataIndex;
+                return `Rain Probability: ${days[idx].rainfall_probability_pct}%\nPredicted — Forecast`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: palette.text, font: { size: 11 } },
+            grid: { display: false },
+            title: { display: true, text: "Day", color: palette.text },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: palette.text },
+            grid: { color: palette.grid },
+            title: { display: true, text: "Rainfall (mm)", color: palette.cyan },
           },
         },
       },

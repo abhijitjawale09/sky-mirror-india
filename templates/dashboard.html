@@ -23,9 +23,13 @@
       <span class="tab-icon">📈</span>
       <span>Forecast & Uncertainty</span>
     </button>
+    <button class="tab-btn" data-tab="7day" role="tab" aria-selected="false" id="tab-7day-btn">
+      <span class="tab-icon">🌤️</span>
+      <span>7-Day Forecast</span>
+    </button>
     <button class="tab-btn" data-tab="scenario" role="tab" aria-selected="false" id="tab-scenario-btn">
       <span class="tab-icon">🧪</span>
-      <span>Scenario Lab</span>
+      <span>What-If Simulation</span>
     </button>
     <button class="tab-btn" data-tab="extremes" role="tab" aria-selected="false" id="tab-extremes-btn">
       <span class="tab-icon">⚡</span>
@@ -430,6 +434,109 @@
           </div>
         </div>
         <canvas id="temporalContextChart" style="height: 180px;"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- TAB: 7-DAY CLIMATE PREDICTION -->
+<!-- ============================================================ -->
+<section id="view-7day" class="tab-view">
+  <div class="f7d-layout">
+    <!-- Header & Location Search -->
+    <div class="glass-panel f7d-header-panel reveal">
+      <div class="f7d-header-row">
+        <div>
+          <div class="section-label" style="color: var(--cyan);">7-Day Climate Prediction</div>
+          <h3 class="f7d-main-title">Predicted Daily Conditions — Next 7 Days</h3>
+          <p class="f7d-disclaimer">
+            <span class="tag-badge tag-forecast" style="margin-right: 6px;">FORECAST</span>
+            Forecast values are model-based predictions and may change as new observations become available.
+          </p>
+        </div>
+        <div class="f7d-search-group">
+          <div class="f7d-location-field">
+            <label for="f7d-location-select" class="sr-only">Select Location</label>
+            <select id="f7d-location-select" class="region-select f7d-region-select">
+              {% for region in state.pilot_regions %}
+              <option value="{{ region.name }}" {% if region.name == state.region %}selected{% endif %}>
+                {{ region.name }} ({{ region.latitude }}°N, {{ region.longitude }}°E)
+              </option>
+              {% endfor %}
+              <option value="__custom__">📍 Custom Coordinates…</option>
+            </select>
+          </div>
+          <div id="f7d-custom-coords" class="f7d-custom-coords" style="display: none;">
+            <input id="f7d-lat" type="number" placeholder="Latitude" step="0.1" min="-90" max="90" class="f7d-coord-input" />
+            <input id="f7d-lon" type="number" placeholder="Longitude" step="0.1" min="-180" max="180" class="f7d-coord-input" />
+            <button id="f7d-search-btn" class="primary-button btn-sm">Search</button>
+          </div>
+          <div class="f7d-updated-row">
+            <span class="muted">Last updated:</span>
+            <strong id="f7d-last-updated" class="text-cyan">—</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Skeleton -->
+    <div id="f7d-loading" class="f7d-loading" style="display: none;">
+      <div class="f7d-spinner"></div>
+      <span>Loading 7-day forecast…</span>
+    </div>
+
+    <!-- Error State -->
+    <div id="f7d-error" class="glass-panel f7d-error-panel" style="display: none;">
+      <span class="f7d-error-icon">⚠️</span>
+      <div>
+        <strong>Forecast Unavailable</strong>
+        <p id="f7d-error-message" class="muted">Unable to fetch forecast data. Please try again.</p>
+      </div>
+    </div>
+
+    <!-- 7-Day Forecast Cards -->
+    <div id="f7d-cards-container" class="f7d-cards-scroll">
+      <div id="f7d-cards" class="f7d-cards-grid">
+        <!-- Cards rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="f7d-charts-grid">
+      <!-- Temperature Chart -->
+      <div class="glass-panel f7d-chart-panel reveal delay-1">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Temperature Outlook</div>
+            <h4>Predicted Max & Min Temperature (°C)</h4>
+          </div>
+          <span class="tag-badge tag-forecast">FORECAST</span>
+        </div>
+        <div class="chart-container f7d-chart-container">
+          <canvas id="f7dTempChart"></canvas>
+        </div>
+        <div class="f7d-chart-legend">
+          <div class="legend-entry"><span class="legend-line line-amber"></span><span>Max Temp (Tmax)</span></div>
+          <div class="legend-entry"><span class="legend-line line-blue"></span><span>Min Temp (Tmin)</span></div>
+        </div>
+      </div>
+
+      <!-- Rainfall Chart -->
+      <div class="glass-panel f7d-chart-panel reveal delay-2">
+        <div class="panel-head compact">
+          <div>
+            <div class="section-label">Precipitation Outlook</div>
+            <h4>Predicted Daily Rainfall (mm)</h4>
+          </div>
+          <span class="tag-badge tag-forecast">FORECAST</span>
+        </div>
+        <div class="chart-container f7d-chart-container">
+          <canvas id="f7dRainfallChart"></canvas>
+        </div>
+        <div class="f7d-chart-legend">
+          <div class="legend-entry"><span class="legend-line line-rain"></span><span>Predicted Rainfall</span></div>
+        </div>
       </div>
     </div>
   </div>
