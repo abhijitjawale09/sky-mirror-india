@@ -1264,20 +1264,6 @@ h4 {
   word-break: break-all;
 }
 
-/* Replay Layout */
-.replay-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.replay-input-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
 
 .input-group {
   display: flex;
@@ -1350,15 +1336,6 @@ h4 {
   font-size: 0.75rem;
 }
 
-.replay-score-pill {
-  background: rgba(0, 245, 212, 0.1);
-  border: 1px solid rgba(0, 245, 212, 0.3);
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.74rem;
-  color: var(--cyan);
-}
 
 /* --- Multi-Model Comparison & Difference Styling --- */
 .nav-counter-pill {

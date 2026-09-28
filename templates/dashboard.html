@@ -40,10 +40,6 @@
       <span>Model Comparison</span>
       <span class="nav-counter-pill">8 Models</span>
     </button>
-    <button class="tab-btn" data-tab="replay" role="tab" aria-selected="false" id="tab-replay-btn">
-      <span class="tab-icon">⏳</span>
-      <span>Historical Replay</span>
-    </button>
   </nav>
 
   <div class="header-status">
@@ -1098,49 +1094,6 @@
           </article>
           {% endfor %}
         </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ -->
-<!-- TAB 6: HISTORICAL REPLAY & VERIFICATION -->
-<!-- ============================================================ -->
-<section id="view-replay" class="tab-view">
-  <div class="replay-layout">
-    <div class="glass-panel replay-controls-panel">
-      <div class="panel-head">
-        <div>
-          <div class="section-label">Verification Mode</div>
-          <h3>Historical Backtest Replay</h3>
-        </div>
-      </div>
-
-      <div class="replay-input-row">
-        <div class="input-group">
-          <label for="replay-start-date">Start Date</label>
-          <input id="replay-start-date" type="date" value="2024-06-01" min="2024-01-01" max="2025-12-31" class="date-input" />
-        </div>
-        <div class="input-group">
-          <label for="replay-end-date">End Date</label>
-          <input id="replay-end-date" type="date" value="2024-07-15" min="2024-01-01" max="2025-12-31" class="date-input" />
-        </div>
-        <button id="run-replay-btn" class="primary-button btn-lg">Run Backtest Replay</button>
-      </div>
-    </div>
-
-    <div class="glass-panel chart-panel">
-      <div class="panel-head compact">
-        <div>
-          <div class="section-label">Ground Truth vs Model</div>
-          <h3>Actual Observations vs 1-Day-Ahead Predictions</h3>
-        </div>
-        <div id="replay-metrics-summary" class="replay-score-pill">
-          <span>Ready to execute</span>
-        </div>
-      </div>
-      <div class="chart-container">
-        <canvas id="replayChart"></canvas>
       </div>
     </div>
   </div>

@@ -30,8 +30,6 @@ def predict() -> tuple[object, int]:
     region = str(payload.get("region", current_app.config.get("PILOT_REGION", "Kerala Coast")))
     mode = DashboardMode(
         name=str(payload.get("mode", "live")),
-        replay_start=payload.get("replay_start"),
-        replay_end=payload.get("replay_end"),
     )
     return jsonify(engine.get_dashboard_state(region, scenario=scenario, mode=mode)), 200
 
@@ -51,24 +49,6 @@ def live_sync() -> tuple[object, int]:
         "latency_ms": sync_result.latency_ms,
         "state": state,
     }), 200
-
-
-@main_bp.post("/api/replay")
-def replay() -> tuple[object, int]:
-    payload = request.get_json(force=True, silent=True) or {}
-    engine = current_app.extensions["digital_twin_engine"]
-
-    region = str(payload.get("region", current_app.config["PILOT_REGION"]))
-    start_date = payload.get("start_date", "2024-06-01")
-    end_date = payload.get("end_date", "2024-06-30")
-
-    mode = DashboardMode(
-        name="replay",
-        replay_start=start_date,
-        replay_end=end_date,
-    )
-    state = engine.get_dashboard_state(region, mode=mode)
-    return jsonify({"region": region, "replay": state.get("replay")}), 200
 
 
 @main_bp.get("/api/model-comparison")

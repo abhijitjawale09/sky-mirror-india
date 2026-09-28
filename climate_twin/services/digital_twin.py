@@ -12,7 +12,7 @@ from .forecasting import ClimateForecaster
 from .live_feed import LiveFeedService, LiveSyncResult
 from .real_time_conditions import RealTimeConditions
 from .seven_day_forecast import SevenDayForecastService
-from .twin_simulation import TwinScenario, build_replay_result, build_simulation_result
+from .twin_simulation import TwinScenario, build_simulation_result
 from .twin_state import build_twin_state
 
 
@@ -21,12 +21,10 @@ class DashboardMode:
     """Describe how the dashboard payload should be assembled."""
 
     name: str = "live"
-    replay_start: str | None = None
-    replay_end: str | None = None
 
 
 class DigitalTwinEngine:
-    """Orchestrate live state, what-if simulation, and replay reporting."""
+    """Orchestrate live state and what-if simulation reporting."""
 
     def __init__(self) -> None:
         # Historical training table used for model fitting & 15-year climatological baselines
@@ -140,9 +138,6 @@ class DigitalTwinEngine:
             },
         )
 
-        replay = None
-        if mode.name == "replay" and mode.replay_start and mode.replay_end:
-            replay = build_replay_result(self.forecaster, historical_region, mode.replay_start, mode.replay_end)
 
         scorecard = self._build_scorecard(region_history, forecast)
         extremes = self._detect_extreme_events(region_history, current_conditions)
@@ -197,7 +192,6 @@ class DigitalTwinEngine:
                 "risk_level": "rule_derived",
             },
             "simulation": simulation.to_dict(),
-            "replay": replay.to_dict() if replay is not None else None,
             "model_comparison": self.forecaster.get_model_comparison(),
             "model_comparison_detailed": self.forecaster.get_model_comparison_detailed(),
             "multi_model_forecasts": self.forecaster.get_multi_model_forecasts(

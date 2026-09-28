@@ -1,7 +1,7 @@
 {
   "status": "success",
-  "synced_at": "2026-09-28 19:22:59 IST",
-  "records_count": 217,
+  "synced_at": "2026-09-28 22:39:47 IST",
+  "records_count": 56,
   "latest_date": "2026-09-28",
   "regions_synced": [
     "Kerala Coast",
@@ -13,5 +13,5 @@
     "Coastal Odisha"
   ],
   "source": "Open-Meteo High-Resolution Real-Time Stream",
-  "latency_ms": 6818.4
+  "latency_ms": 6144.8
 }

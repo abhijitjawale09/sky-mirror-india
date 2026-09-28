@@ -55,28 +55,6 @@ class TwinSimulationResult:
         }
 
 
-@dataclass(frozen=True)
-class TwinReplayResult:
-    """Store a historical replay used for validation and case-study reporting."""
-
-    region: str
-    start_date: str
-    end_date: str
-    series: pd.DataFrame
-    summary: dict[str, float | str]
-    basis: dict[str, str]
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "region": self.region,
-            "start_date": self.start_date,
-            "end_date": self.end_date,
-            "series": _replay_series_payload(self.series),
-            "summary": self.summary,
-            "basis": self.basis,
-        }
-
-
 def build_simulation_result(
     forecaster: ClimateForecaster,
     region_history: pd.DataFrame,
@@ -143,60 +121,6 @@ def build_simulation_result(
     )
 
 
-def build_replay_result(
-    forecaster: ClimateForecaster,
-    region_history: pd.DataFrame,
-    start_date: str,
-    end_date: str,
-) -> TwinReplayResult:
-    """Replay a historical date range with one-day-ahead predictions."""
-
-    history = region_history.sort_values("date").reset_index(drop=True).copy()
-    history["date"] = pd.to_datetime(history["date"])
-    start = pd.to_datetime(start_date)
-    end = pd.to_datetime(end_date)
-
-    rows: list[dict[str, float | str | pd.Timestamp]] = []
-    for target_date in pd.date_range(start=start, end=end, freq="D"):
-        prior_history = history.loc[history["date"] < target_date]
-        actual = history.loc[history["date"] == target_date]
-        if prior_history.empty or actual.empty:
-            continue
-
-        prediction = forecaster.predict_next(prior_history, horizon_days=1).iloc[0]
-        rows.append(
-            {
-                "date": target_date,
-                "actual_rainfall_mm": float(actual.iloc[0]["rainfall_mm"]),
-                "predicted_rainfall_mm": float(prediction["rainfall_mm"]),
-                "actual_tmax_c": float(actual.iloc[0]["tmax_c"]),
-                "predicted_tmax_c": float(prediction["tmax_c"]),
-                "actual_tmin_c": float(actual.iloc[0]["tmin_c"]),
-                "predicted_tmin_c": float(prediction["tmin_c"]),
-            }
-        )
-
-    series = pd.DataFrame(rows).sort_values("date").reset_index(drop=True)
-    if series.empty:
-        summary = {"records": 0, "mae_rainfall_mm": 0.0, "mae_tmax_c": 0.0, "mae_tmin_c": 0.0}
-    else:
-        summary = {
-            "records": int(len(series)),
-            "mae_rainfall_mm": float(np.abs(series["predicted_rainfall_mm"] - series["actual_rainfall_mm"]).mean()),
-            "mae_tmax_c": float(np.abs(series["predicted_tmax_c"] - series["actual_tmax_c"]).mean()),
-            "mae_tmin_c": float(np.abs(series["predicted_tmin_c"] - series["actual_tmin_c"]).mean()),
-        }
-
-    return TwinReplayResult(
-        region=str(history.iloc[0]["region"]) if not history.empty else "unknown",
-        start_date=start.strftime("%Y-%m-%d"),
-        end_date=end.strftime("%Y-%m-%d"),
-        series=series,
-        summary=summary,
-        basis={"series": "ml_forecast", "summary": "rule_derived"},
-    )
-
-
 def _forecast_payload(forecast: pd.DataFrame, basis: str) -> dict[str, Any]:
     forecast_frame = forecast.copy()
     forecast_frame["date"] = pd.to_datetime(forecast_frame["date"])
@@ -206,21 +130,4 @@ def _forecast_payload(forecast: pd.DataFrame, basis: str) -> dict[str, Any]:
         "tmax_c": forecast_frame["tmax_c"].round(2).tolist(),
         "tmin_c": forecast_frame["tmin_c"].round(2).tolist(),
         "basis": basis,
-    }
-
-
-def _replay_series_payload(series: pd.DataFrame) -> dict[str, Any]:
-    replay = series.copy()
-    if replay.empty:
-        return {"labels": [], "basis": "ml_forecast"}
-    replay["date"] = pd.to_datetime(replay["date"])
-    return {
-        "labels": replay["date"].dt.strftime("%d %b %Y").tolist(),
-        "actual_rainfall_mm": replay["actual_rainfall_mm"].round(2).tolist(),
-        "predicted_rainfall_mm": replay["predicted_rainfall_mm"].round(2).tolist(),
-        "actual_tmax_c": replay["actual_tmax_c"].round(2).tolist(),
-        "predicted_tmax_c": replay["predicted_tmax_c"].round(2).tolist(),
-        "actual_tmin_c": replay["actual_tmin_c"].round(2).tolist(),
-        "predicted_tmin_c": replay["predicted_tmin_c"].round(2).tolist(),
-        "basis": "ml_forecast",
     }

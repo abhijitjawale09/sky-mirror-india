@@ -7,7 +7,6 @@
   const forecastChartCanvas = document.getElementById("forecastChart");
   const simulationChartCanvas = document.getElementById("simulationChart");
   const temporalContextChartCanvas = document.getElementById("temporalContextChart");
-  const replayChartCanvas = document.getElementById("replayChart");
 
   const globalRegionSelect = document.getElementById("global-region-select");
   const regionName = document.getElementById("region-name");
@@ -52,11 +51,6 @@
   const precautionsList = document.getElementById("precautions-list");
   const resetScenarioBtn = document.getElementById("reset-scenario-btn");
 
-  // Replay Elements
-  const replayStartDate = document.getElementById("replay-start-date");
-  const replayEndDate = document.getElementById("replay-end-date");
-  const runReplayBtn = document.getElementById("run-replay-btn");
-  const replayMetricsSummary = document.getElementById("replay-metrics-summary");
 
   // Model Comparison Elements & State
   const modelCompChartCanvas = document.getElementById("modelComparisonChart");
@@ -85,7 +79,6 @@
   let forecastChart = null;
   let simulationChart = null;
   let temporalContextChart = null;
-  let replayChart = null;
   let modelComparisonChart = null;
   let f7dTempChart = null;
   let f7dRainfallChart = null;
@@ -132,7 +125,6 @@
     renderModelComparisonChart(activeCompMetric);
     attachRegionButtons();
     attachPresetChips();
-    attachReplayHandler();
     attachLiveSyncHandler();
     attachScorecardJump();
     init7DayForecast();
@@ -191,7 +183,6 @@
           if (forecastChart) forecastChart.resize();
           if (simulationChart) simulationChart.resize();
           if (temporalContextChart) temporalContextChart.resize();
-          if (replayChart) replayChart.resize();
           if (modelComparisonChart) modelComparisonChart.resize();
           if (f7dTempChart) f7dTempChart.resize();
           if (f7dRainfallChart) f7dRainfallChart.resize();
@@ -799,139 +790,6 @@
             ticks: { color: palette.cyan },
             grid: { color: palette.grid },
             min: 0,
-          },
-          yTemp: {
-            type: "linear",
-            position: "right",
-            title: { display: true, text: "Temperature (°C)", color: palette.ruby },
-            ticks: { color: palette.ruby },
-            grid: { display: false },
-          },
-        },
-      },
-    });
-  }
-
-  // Chart 4 & Handler: Historical Replay Backtest
-  function attachReplayHandler() {
-    if (!runReplayBtn) return;
-
-    runReplayBtn.addEventListener("click", async () => {
-      runReplayBtn.textContent = "Executing Backtest...";
-      runReplayBtn.disabled = true;
-
-      try {
-        const response = await fetch("/api/replay", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            region: selectedRegion,
-            start_date: replayStartDate.value,
-            end_date: replayEndDate.value,
-          }),
-        });
-
-        const data = await response.json();
-        const replay = data.replay;
-
-        if (replay && replay.series) {
-          renderReplayChart(replay.series);
-          if (replayMetricsSummary && replay.summary) {
-            replayMetricsSummary.innerHTML = `
-              <span>${replay.summary.records} Days</span> | 
-              <span>Rainfall MAE: <strong>${Number(replay.summary.mae_rainfall_mm).toFixed(2)} mm</strong></span> | 
-              <span>Tmax MAE: <strong>${Number(replay.summary.mae_tmax_c).toFixed(2)} °C</strong></span>
-            `;
-          }
-        }
-      } catch (err) {
-        console.error("Replay execution failed:", err);
-      } finally {
-        runReplayBtn.textContent = "Run Backtest Replay";
-        runReplayBtn.disabled = false;
-      }
-    });
-  }
-
-  function renderReplayChart(series) {
-    if (!replayChartCanvas || !series) return;
-
-    const labels = series.labels || [];
-    const actualRain = series.actual_rainfall_mm || [];
-    const predRain = series.predicted_rainfall_mm || [];
-    const actualTmax = series.actual_tmax_c || [];
-    const predTmax = series.predicted_tmax_c || [];
-
-    const datasets = [
-      {
-        label: "Observed Rainfall (mm)",
-        data: actualRain,
-        backgroundColor: "rgba(112, 161, 255, 0.5)",
-        borderColor: palette.blue,
-        borderWidth: 1.5,
-        type: "bar",
-        yAxisID: "yRain",
-      },
-      {
-        label: "Model Predicted Rainfall (mm)",
-        data: predRain,
-        borderColor: palette.cyan,
-        backgroundColor: "transparent",
-        borderWidth: 2.2,
-        type: "line",
-        tension: 0.25,
-        yAxisID: "yRain",
-      },
-      {
-        label: "Observed Tmax (°C)",
-        data: actualTmax,
-        borderColor: "rgba(255, 191, 117, 0.7)",
-        borderDash: [3, 3],
-        borderWidth: 1.8,
-        type: "line",
-        yAxisID: "yTemp",
-      },
-      {
-        label: "Predicted Tmax (°C)",
-        data: predTmax,
-        borderColor: palette.ruby,
-        borderWidth: 2,
-        type: "line",
-        yAxisID: "yTemp",
-      },
-    ];
-
-    const context = replayChartCanvas.getContext("2d");
-
-    if (replayChart) {
-      replayChart.data.labels = labels;
-      replayChart.data.datasets = datasets;
-      replayChart.update();
-      return;
-    }
-
-    replayChart = new Chart(context, {
-      type: "bar",
-      data: { labels, datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: "index", intersect: false },
-        plugins: {
-          legend: {
-            display: true,
-            labels: { color: palette.text, usePointStyle: true },
-            position: "top",
-          },
-        },
-        scales: {
-          x: { ticks: { color: palette.text }, grid: { color: palette.grid } },
-          yRain: {
-            type: "linear",
-            position: "left",
-            title: { display: true, text: "Rainfall (mm)", color: palette.cyan },
-            ticks: { color: palette.cyan },
-            grid: { color: palette.grid },
           },
           yTemp: {
             type: "linear",

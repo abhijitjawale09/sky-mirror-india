@@ -10,7 +10,6 @@ An AI-powered, uncertainty-aware spatio-temporal Digital Twin of India's climate
 * **Uncertainty Quantification**: Quantifies forecast spread from tree-level ensemble variance and outputs calibrated prediction bands.
 * **What-If Scenario Lab**: Interactive climate perturbations (Rainfall $\pm 60\%$, Temperature $\pm 6.0^\circ\text{C}$, 3–30 day horizons) computing cumulative precipitation budgets, water surplus/deficit, and rule-based adaptive advisories.
 * **Extreme Event Intelligence**: Automated detection of heavy precipitation ($>64.5\text{ mm}$), thermal heatwaves ($>37^\circ\text{C}$ / $>40^\circ\text{C}$), dry spells, and 99th-percentile hazard breaches against 15-year climatological baselines.
-* **Historical Backtest Replay**: Retroactive validation tool comparing model predictions against ground truth observations across custom historical time windows.
 * **Scientific Honesty & Transparency**: Rigorous basis tracking tagging every value as `Observed`, `ML Forecast`, `Rule Estimated`, `Rule Derived`, `Climatological Probability`, or `Ensemble Variance`.
 
 ---
@@ -42,7 +41,7 @@ graph TD
     end
 
     subgraph Web & Presentation
-        DTE --> FLASK["Flask Blueprint Layer\n(/, /api/predict, /api/replay)"]
+        DTE --> FLASK["Flask Blueprint Layer\n(/, /api/predict)"]
         FLASK --> DASHBOARD["Glassmorphism Dashboard\n(Leaflet Maps + Chart.js Uncertainty)"]
     end
 ```
@@ -100,14 +99,6 @@ Visit [http://127.0.0.1:5010](http://127.0.0.1:5010) in your browser.
     "rainfall_delta_pct": 25.0,
     "temp_delta_c": 1.5,
     "horizon_days": 14
-  }
-  ```
-* `POST /api/replay` — Historical backtest engine:
-  ```json
-  {
-    "region": "Central India",
-    "start_date": "2024-06-01",
-    "end_date": "2024-07-15"
   }
   ```
 * `GET /health` — Service health check.
