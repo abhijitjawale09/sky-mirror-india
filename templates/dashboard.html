@@ -331,9 +331,6 @@
           <div><span class="muted" style="display:block; font-size:0.68rem; text-transform: uppercase;">R²</span><strong class="text-green">{{ row.avg_r2 }}</strong></div>
           <div><span class="muted" style="display:block; font-size:0.68rem; text-transform: uppercase;">Acc.</span><strong class="text-cyan">{{ row.overall_accuracy }}%</strong></div>
         </div>
-        <div style="font-size: 0.78rem; color: rgba(240,246,252,0.8); line-height: 1.35; margin-top: 0.3rem;">
-          <strong>Verdict:</strong> {{ row.verdict }}
-        </div>
       </article>
       {% endfor %}
     </div>
@@ -837,12 +834,92 @@
             <div><span class="muted">Target Wins:</span> <strong style="color: #2ecc71;">{{ row.wins }} / 3 Targets {% if row.wins == 3 %}(Sweep){% endif %}</strong></div>
             <div><span class="muted">Train Time:</span> <strong>{{ row.training_time }}s</strong></div>
           </div>
-          <div style="font-size: 0.8rem; color: rgba(240,246,252,0.85); line-height: 1.4; margin-top: 0.4rem;">
-            <div style="color: var(--cyan); font-weight: 600; margin-bottom: 2px;">Key Strength:</div>
-            {{ row.strengths }}
-          </div>
         </article>
         {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Executive 4x2 Model Comparison Table -->
+    {% if state.model_comparison_detailed and state.model_comparison_detailed.overall_ranking %}
+    <div class="glass-panel" style="margin-bottom: 1.5rem;">
+      <div class="panel-head compact">
+        <div>
+          <div class="section-label" style="color: var(--cyan);">EXECUTIVE BENCHMARK MATRIX</div>
+          <h3>📋 Model Comparison Table (4 × 2)</h3>
+        </div>
+        <span class="tag-badge" style="background: rgba(0,245,212,0.15); color: var(--cyan); border: 1px solid var(--cyan);">8 ARCHITECTURES</span>
+      </div>
+
+      <p class="muted" style="padding: 0.4rem 1.2rem 0; font-size: 0.85rem; margin-bottom: 0.4rem;">
+        Standardized 4×2 comparison matrix displaying all 8 evaluated machine learning models across chronological test splits (N=761). Row 1 presents the Top-4 Benchmark Champions; Row 2 presents the specialized neural, graph, and hurdle architectures.
+      </p>
+
+      <div class="table-4x2-wrapper" style="margin: 0.6rem 1.2rem 1.2rem;">
+        <table class="table-4x2">
+          <thead>
+            <tr>
+              <th style="width: 140px;" class="tier-th">Benchmark Tier</th>
+              <th>Column 1: Tree Ensembles</th>
+              <th>Column 2: Gradient Boosting</th>
+              <th>Column 3: Physics &amp; Spatial</th>
+              <th>Column 4: Deep Sequence</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1: Top 4 Models (Rank 1 to 4) -->
+            <tr>
+              <td class="tier-th" style="vertical-align: middle;">
+                <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">ROW 1</div>
+                <div class="tag-badge" style="background: rgba(0,245,212,0.18); color: #00f5d4; font-size: 0.68rem; margin-top: 4px; display: inline-block;">Top-4 Leaders</div>
+              </td>
+              {% for row in state.model_comparison_detailed.overall_ranking[:4] %}
+              <td class="{% if row.rank == 1 %}winner-cell{% endif %}">
+                <div class="cell-header">
+                  <span class="cell-model-name">
+                    <span class="rank-badge rank-{{ row.rank }}">{{ row.rank }}</span>{{ row.display_name }}
+                  </span>
+                  <span class="diff-badge {% if row.rank == 1 %}diff-badge-best{% elif row.rank == 2 %}diff-badge-close{% else %}diff-badge-gap{% endif %}" style="font-size: 0.68rem;">
+                    {{ row.badge }}
+                  </span>
+                </div>
+                <div class="cell-metrics-grid">
+                  <div><span class="muted">Avg MAE:</span> <strong class="text-cyan">{{ row.avg_mae }}</strong></div>
+                  <div><span class="muted">Avg RMSE:</span> <strong style="color: #ff9f43;">{{ row.avg_rmse }}</strong></div>
+                  <div><span class="muted">Accuracy:</span> <strong class="text-green">{{ row.overall_accuracy }}%</strong></div>
+                  <div><span class="muted">Target Wins:</span> <strong style="color: #2ecc71;">{{ row.wins }}/3</strong></div>
+                </div>
+              </td>
+              {% endfor %}
+            </tr>
+
+            <!-- Row 2: Secondary Tier (Rank 5 to 8) -->
+            <tr>
+              <td class="tier-th" style="vertical-align: middle;">
+                <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">ROW 2</div>
+                <div class="tag-badge" style="background: rgba(255,255,255,0.08); color: var(--text-muted); font-size: 0.68rem; margin-top: 4px; display: inline-block;">Specialized Tier</div>
+              </td>
+              {% for row in state.model_comparison_detailed.overall_ranking[4:8] %}
+              <td>
+                <div class="cell-header">
+                  <span class="cell-model-name">
+                    <span class="rank-badge rank-{{ row.rank }}">{{ row.rank }}</span>{{ row.display_name }}
+                  </span>
+                  <span class="diff-badge diff-badge-gap" style="font-size: 0.68rem;">
+                    {{ row.badge }}
+                  </span>
+                </div>
+                <div class="cell-metrics-grid">
+                  <div><span class="muted">Avg MAE:</span> <strong class="text-cyan">{{ row.avg_mae }}</strong></div>
+                  <div><span class="muted">Avg RMSE:</span> <strong style="color: #ff9f43;">{{ row.avg_rmse }}</strong></div>
+                  <div><span class="muted">Accuracy:</span> <strong class="text-green">{{ row.overall_accuracy }}%</strong></div>
+                  <div><span class="muted">Target Wins:</span> <strong style="color: #2ecc71;">{{ row.wins }}/3</strong></div>
+                </div>
+              </td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
     {% endif %}
@@ -972,30 +1049,7 @@
       </div>
     </div>
 
-    <!-- Model Comparison Deep-Dive & Why They Differ -->
-    <div class="glass-panel" style="margin-bottom: 1.5rem;">
-      <div class="panel-head compact">
-        <div>
-          <div class="section-label">Scientific Analysis</div>
-          <h3>🔬 Architectural Differences & Why Performance Varies</h3>
-        </div>
-      </div>
-      <div class="leaderboard-grid" style="padding: 0.8rem 1.2rem;">
-        {% if state.model_comparison_detailed and state.model_comparison_detailed.overall_ranking %}
-          {% for row in state.model_comparison_detailed.overall_ranking %}
-          <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 3px solid {{ row.color|default('#888') }}; {% if row.rank == 1 %}background: linear-gradient(135deg, rgba(0,245,212,0.08), rgba(0,0,0,0.3)); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,245,212,0.12);{% endif %}">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-              <h4 style="color: {{ row.color|default('#888') }}; margin-bottom: 0;">{{ row.icon|default('📦') }} {{ row.display_name }}</h4>
-              {% if row.rank == 1 %}<span class="tag-badge" style="background: rgba(0,245,212,0.2); color: #00f5d4; border: 1px solid var(--cyan); font-size: 0.72rem;">👑 Overall Champion</span>{% endif %}
-            </div>
-            <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
-              {{ row.strengths }}
-            </p>
-          </article>
-          {% endfor %}
-        {% endif %}
-      </div>
-    </div>
+
 
     <!-- Feature Importance Ranking & Provenance -->
     <div class="dashboard-grid">
