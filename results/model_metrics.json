@@ -5,7 +5,7 @@
     "mae": 2.5241,
     "rmse": 6.9059,
     "r2": 0.131,
-    "training_time_s": 1.13,
+    "training_time_s": 1.14,
     "hyperparameters": {
       "max_iter": 500,
       "max_depth": 10,
@@ -22,7 +22,7 @@
     "mae": 1.1771,
     "rmse": 1.5404,
     "r2": 0.9418,
-    "training_time_s": 1.13,
+    "training_time_s": 1.14,
     "hyperparameters": {
       "max_iter": 500,
       "max_depth": 10,
@@ -39,7 +39,7 @@
     "mae": 0.9056,
     "rmse": 1.1937,
     "r2": 0.9741,
-    "training_time_s": 1.13,
+    "training_time_s": 1.14,
     "hyperparameters": {
       "max_iter": 500,
       "max_depth": 10,
@@ -51,12 +51,69 @@
     }
   },
   {
+    "model_name": "hurdle_lightgbm",
+    "target": "rainfall_mm",
+    "mae": 3.206,
+    "rmse": 8.7254,
+    "r2": -0.3873,
+    "training_time_s": 2.97,
+    "hyperparameters": {
+      "n_estimators": 250,
+      "learning_rate": 0.05,
+      "max_depth": 7,
+      "num_leaves": 31,
+      "rain_threshold_mm": 0.1,
+      "prob_threshold": 0.35,
+      "subsample": 0.85,
+      "colsample_bytree": 0.85,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "hurdle_lightgbm",
+    "target": "tmax_c",
+    "mae": 1.1304,
+    "rmse": 1.49,
+    "r2": 0.9455,
+    "training_time_s": 2.97,
+    "hyperparameters": {
+      "n_estimators": 250,
+      "learning_rate": 0.05,
+      "max_depth": 7,
+      "num_leaves": 31,
+      "rain_threshold_mm": 0.1,
+      "prob_threshold": 0.35,
+      "subsample": 0.85,
+      "colsample_bytree": 0.85,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "hurdle_lightgbm",
+    "target": "tmin_c",
+    "mae": 0.8958,
+    "rmse": 1.1808,
+    "r2": 0.9747,
+    "training_time_s": 2.97,
+    "hyperparameters": {
+      "n_estimators": 250,
+      "learning_rate": 0.05,
+      "max_depth": 7,
+      "num_leaves": 31,
+      "rain_threshold_mm": 0.1,
+      "prob_threshold": 0.35,
+      "subsample": 0.85,
+      "colsample_bytree": 0.85,
+      "random_state": 42
+    }
+  },
+  {
     "model_name": "lstm",
     "target": "rainfall_mm",
     "mae": 3.0393,
     "rmse": 7.145,
     "r2": 0.0698,
-    "training_time_s": 3.67,
+    "training_time_s": 3.77,
     "hyperparameters": {
       "lookback": 14,
       "hidden_size": 64,
@@ -75,7 +132,7 @@
     "mae": 2.1601,
     "rmse": 2.7931,
     "r2": 0.8085,
-    "training_time_s": 3.67,
+    "training_time_s": 3.77,
     "hyperparameters": {
       "lookback": 14,
       "hidden_size": 64,
@@ -94,7 +151,7 @@
     "mae": 2.2838,
     "rmse": 2.8112,
     "r2": 0.8565,
-    "training_time_s": 3.67,
+    "training_time_s": 3.77,
     "hyperparameters": {
       "lookback": 14,
       "hidden_size": 64,
@@ -150,12 +207,165 @@
     }
   },
   {
+    "model_name": "st_gnn",
+    "target": "rainfall_mm",
+    "mae": 2.4586,
+    "rmse": 6.6774,
+    "r2": 0.1875,
+    "training_time_s": 0.57,
+    "hyperparameters": {
+      "node_dim": 32,
+      "hidden_dim": 64,
+      "learning_rate": 0.001,
+      "epochs": 90,
+      "batch_size": 64,
+      "patience": 15,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "st_gnn",
+    "target": "tmax_c",
+    "mae": 1.1832,
+    "rmse": 1.5389,
+    "r2": 0.9419,
+    "training_time_s": 0.57,
+    "hyperparameters": {
+      "node_dim": 32,
+      "hidden_dim": 64,
+      "learning_rate": 0.001,
+      "epochs": 90,
+      "batch_size": 64,
+      "patience": 15,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "st_gnn",
+    "target": "tmin_c",
+    "mae": 1.4069,
+    "rmse": 1.7529,
+    "r2": 0.9442,
+    "training_time_s": 0.57,
+    "hyperparameters": {
+      "node_dim": 32,
+      "hidden_dim": 64,
+      "learning_rate": 0.001,
+      "epochs": 90,
+      "batch_size": 64,
+      "patience": 15,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "stacking_ensemble",
+    "target": "rainfall_mm",
+    "mae": 2.7124,
+    "rmse": 6.443,
+    "r2": 0.2436,
+    "training_time_s": 16.92,
+    "hyperparameters": {
+      "n_cv_folds": 5,
+      "meta_alpha": 1.0,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "stacking_ensemble",
+    "target": "tmax_c",
+    "mae": 1.164,
+    "rmse": 1.5198,
+    "r2": 0.9433,
+    "training_time_s": 16.92,
+    "hyperparameters": {
+      "n_cv_folds": 5,
+      "meta_alpha": 1.0,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "stacking_ensemble",
+    "target": "tmin_c",
+    "mae": 0.8845,
+    "rmse": 1.1671,
+    "r2": 0.9753,
+    "training_time_s": 16.92,
+    "hyperparameters": {
+      "n_cv_folds": 5,
+      "meta_alpha": 1.0,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "temporal_transformer",
+    "target": "rainfall_mm",
+    "mae": 1.9903,
+    "rmse": 6.9024,
+    "r2": 0.1319,
+    "training_time_s": 9.88,
+    "hyperparameters": {
+      "lookback": 14,
+      "d_model": 64,
+      "nhead": 4,
+      "num_layers": 2,
+      "dim_feedforward": 128,
+      "dropout": 0.15,
+      "learning_rate": 0.001,
+      "epochs": 80,
+      "batch_size": 64,
+      "patience": 12,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "temporal_transformer",
+    "target": "tmax_c",
+    "mae": 1.6351,
+    "rmse": 2.1214,
+    "r2": 0.8896,
+    "training_time_s": 9.88,
+    "hyperparameters": {
+      "lookback": 14,
+      "d_model": 64,
+      "nhead": 4,
+      "num_layers": 2,
+      "dim_feedforward": 128,
+      "dropout": 0.15,
+      "learning_rate": 0.001,
+      "epochs": 80,
+      "batch_size": 64,
+      "patience": 12,
+      "random_state": 42
+    }
+  },
+  {
+    "model_name": "temporal_transformer",
+    "target": "tmin_c",
+    "mae": 1.4616,
+    "rmse": 1.8297,
+    "r2": 0.9392,
+    "training_time_s": 9.88,
+    "hyperparameters": {
+      "lookback": 14,
+      "d_model": 64,
+      "nhead": 4,
+      "num_layers": 2,
+      "dim_feedforward": 128,
+      "dropout": 0.15,
+      "learning_rate": 0.001,
+      "epochs": 80,
+      "batch_size": 64,
+      "patience": 12,
+      "random_state": 42
+    }
+  },
+  {
     "model_name": "xgboost",
     "target": "rainfall_mm",
     "mae": 2.7082,
     "rmse": 7.0577,
     "r2": 0.0923,
-    "training_time_s": 1.23,
+    "training_time_s": 1.2,
     "hyperparameters": {
       "n_estimators": 500,
       "max_depth": 8,
@@ -174,7 +384,7 @@
     "mae": 1.2406,
     "rmse": 1.6053,
     "r2": 0.9368,
-    "training_time_s": 1.23,
+    "training_time_s": 1.2,
     "hyperparameters": {
       "n_estimators": 500,
       "max_depth": 8,
@@ -193,7 +403,7 @@
     "mae": 0.943,
     "rmse": 1.2304,
     "r2": 0.9725,
-    "training_time_s": 1.23,
+    "training_time_s": 1.2,
     "hyperparameters": {
       "n_estimators": 500,
       "max_depth": 8,

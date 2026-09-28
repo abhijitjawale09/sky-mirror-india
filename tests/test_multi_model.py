@@ -35,7 +35,15 @@ def test_model_registry_contains_all_four_models():
 
 
 def test_model_instantiation():
-    for name in ["random_forest", "xgboost", "hist_gradient_boosting"]:
+    for name in [
+        "random_forest",
+        "xgboost",
+        "hist_gradient_boosting",
+        "hurdle_lightgbm",
+        "temporal_transformer",
+        "st_gnn",
+        "stacking_ensemble",
+    ]:
         model = create_model(name)
         assert model.name == name
         assert model.display_name is not None
@@ -45,7 +53,15 @@ def test_model_instantiation():
 def test_saved_models_can_load_and_predict():
     dummy_features = np.ones((2, 16), dtype=np.float64)
 
-    for model_name in ["random_forest", "xgboost", "hist_gradient_boosting"]:
+    for model_name in [
+        "random_forest",
+        "xgboost",
+        "hist_gradient_boosting",
+        "hurdle_lightgbm",
+        "temporal_transformer",
+        "st_gnn",
+        "stacking_ensemble",
+    ]:
         model_dir = MODELS_DIR / model_name
         if not model_dir.exists():
             continue

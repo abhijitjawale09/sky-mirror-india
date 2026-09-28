@@ -38,6 +38,35 @@ def _register_models() -> None:
     except ImportError:
         logger.info("LSTM model excluded: import failed.")
 
+    try:
+        from .hurdle_lightgbm_model import HurdleLGBMClimateModel, LIGHTGBM_AVAILABLE
+        if LIGHTGBM_AVAILABLE:
+            _MODEL_CLASSES["hurdle_lightgbm"] = HurdleLGBMClimateModel
+        else:
+            logger.info("Hurdle LightGBM excluded: LightGBM not installed.")
+    except ImportError:
+        logger.info("Hurdle LightGBM excluded: import failed.")
+
+    try:
+        from .transformer_model import TemporalTransformerClimateModel, TORCH_AVAILABLE
+        if TORCH_AVAILABLE:
+            _MODEL_CLASSES["temporal_transformer"] = TemporalTransformerClimateModel
+    except ImportError:
+        logger.info("Temporal Transformer excluded: import failed.")
+
+    try:
+        from .st_gnn_model import STGNNClimateModel, TORCH_AVAILABLE
+        if TORCH_AVAILABLE:
+            _MODEL_CLASSES["st_gnn"] = STGNNClimateModel
+    except ImportError:
+        logger.info("ST-GNN excluded: import failed.")
+
+    try:
+        from .stacking_model import PhysicsStackingClimateModel
+        _MODEL_CLASSES["stacking_ensemble"] = PhysicsStackingClimateModel
+    except ImportError:
+        logger.info("Stacking Ensemble excluded: import failed.")
+
 
 def get_model_class(name: str) -> type[ClimateModel]:
     """Get a model class by name."""

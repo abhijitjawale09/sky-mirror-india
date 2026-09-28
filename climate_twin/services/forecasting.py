@@ -307,14 +307,57 @@ class ClimateForecaster:
             "xgboost": "XGBoost",
             "hist_gradient_boosting": "HistGradientBoosting",
             "lstm": "LSTM Neural Net",
+            "hurdle_lightgbm": "Hurdle LightGBM",
+            "temporal_transformer": "Temporal Transformer",
+            "st_gnn": "Spatio-Temporal GNN",
+            "stacking_ensemble": "Physics Stacking Ensemble",
             "persistence": "Persistence Baseline",
         }
 
+        model_colors = {
+            "random_forest": "#00f5d4",
+            "hist_gradient_boosting": "#2ecc71",
+            "xgboost": "#ff9f43",
+            "lstm": "#a55eea",
+            "hurdle_lightgbm": "#e056fd",
+            "temporal_transformer": "#0abde3",
+            "st_gnn": "#feca57",
+            "stacking_ensemble": "#ff6b6b",
+        }
+
+        model_icons = {
+            "random_forest": "🌲",
+            "hist_gradient_boosting": "📊",
+            "xgboost": "⚡",
+            "lstm": "🧠",
+            "hurdle_lightgbm": "🎯",
+            "temporal_transformer": "🔮",
+            "st_gnn": "🌐",
+            "stacking_ensemble": "🏗️",
+        }
+
+        model_arch_descriptions = {
+            "random_forest": "300 bootstrap-aggregated decision trees average out high-variance predictions, preventing outlier over-estimation on zero-inflated monsoon rainfall events.",
+            "hist_gradient_boosting": "Discrete 255-bin histogram split evaluation captures subtle overnight radiative cooling gradients, with native NaN support for missing satellite channels.",
+            "xgboost": "L1/L2 regularized gradient boosting with second-order Taylor approximation prevents overfitting on seasonal peaks while maintaining strong temperature predictions.",
+            "lstm": "14-day lookback recurrent network learns temporal momentum patterns directly from sequences, but is sample-constrained on 2-year daily records compared to tree ensembles.",
+            "hurdle_lightgbm": "Two-stage architecture: binary rain occurrence classifier gates a Tweedie intensity regressor, eliminating false rain predictions on dry days and improving temperature via dedicated gradient-boosted trees.",
+            "temporal_transformer": "Multi-head self-attention with sinusoidal positional encodings captures long-range seasonal teleconnections across 14-day windows, with learned temporal pooling for multi-target regression.",
+            "st_gnn": "Graph Convolutional Network propagates atmospheric state signals across India's 7 pilot regions using geodesic distance and monsoon track adjacency weights for spatially-aware predictions.",
+            "stacking_ensemble": "Non-negative Ridge meta-learner blends cross-validated predictions from RF, HistGB, XGBoost, and LightGBM with physics constraints: Tmax ≥ Tmin + 0.5°C and Rain ≥ 0.",
+        }
+
         targets_detailed: dict[str, list[dict[str, Any]]] = {}
+
+        # Dynamically discover all model keys from metrics
+        all_model_keys: list[str] = []
+        if self._multi_model_loaded and self._all_model_metrics:
+            all_model_keys = sorted(set(m["model_name"] for m in self._all_model_metrics))
+
         chart_data: dict[str, Any] = {
-            "labels": ["Random Forest", "HistGradientBoosting", "XGBoost", "LSTM"],
-            "model_keys": ["random_forest", "hist_gradient_boosting", "xgboost", "lstm"],
-            "colors": ["#00f5d4", "#2ecc71", "#ff9f43", "#a55eea"],
+            "labels": [model_display_names.get(k, k) for k in all_model_keys],
+            "model_keys": all_model_keys,
+            "colors": [model_colors.get(k, "#888") for k in all_model_keys],
             "rainfall_mae": [],
             "tmax_mae": [],
             "tmin_mae": [],
@@ -365,7 +408,8 @@ class ClimateForecaster:
                     })
                 targets_detailed[target] = rows
 
-            for m_key in chart_data["model_keys"]:
+            # Build chart data for all models
+            for m_key in all_model_keys:
                 for t, key in [("rainfall_mm", "rainfall_mae"), ("tmax_c", "tmax_mae"), ("tmin_c", "tmin_mae")]:
                     found = [m for m in self._all_model_metrics if m["model_name"] == m_key and m["target"] == t]
                     short_t = "rainfall" if "rainfall" in t else ("tmax" if "tmax" in t else "tmin")
@@ -383,70 +427,77 @@ class ClimateForecaster:
                 m_rows = [m for m in self._all_model_metrics if m["model_name"] == m_key]
                 chart_data["training_times"].append(round(m_rows[0].get("training_time_s", 0.0), 2) if m_rows else 0.0)
 
-        overall_ranking = [
-            {
-                "rank": 1,
-                "model": "random_forest",
-                "display_name": "Random Forest",
-                "wins": 2,
-                "win_targets": "Rainfall & Max Temp",
-                "avg_mae": 1.551,
-                "avg_r2": 0.716,
-                "overall_accuracy": 71.6,
-                "training_time": 0.42,
-                "badge": "🥇 OVERALL WINNER",
-                "verdict": "Best for non-linear rainfall & extreme heat waves via multi-tree bagging variance damping.",
-                "strengths": "Lowest rainfall MAE (2.46mm), lowest Tmax MAE (1.17°C), fast 0.42s training.",
-            },
-            {
-                "rank": 2,
-                "model": "hist_gradient_boosting",
-                "display_name": "HistGradientBoosting",
-                "wins": 1,
-                "win_targets": "Min Temperature",
-                "avg_mae": 1.536,
-                "avg_r2": 0.682,
-                "overall_accuracy": 68.2,
-                "training_time": 1.13,
-                "badge": "🥈 RUNNER-UP",
-                "verdict": "Best for overnight cooling (Tmin). Highly efficient histogram split bins with native NaN support.",
-                "strengths": "Lowest Tmin MAE (0.91°C, R²=0.974), sub-second training, handles missing satellite channels.",
-            },
-            {
-                "rank": 3,
-                "model": "xgboost",
-                "display_name": "XGBoost",
-                "wins": 0,
-                "win_targets": "Competitive on Tmin (Rank 2)",
-                "avg_mae": 1.631,
-                "avg_r2": 0.667,
-                "overall_accuracy": 66.7,
-                "training_time": 1.23,
-                "badge": "🥉 3RD PLACE",
-                "verdict": "Strong regularized boosting performance. Close second on Tmin (+4.1% error) and third on rainfall.",
-                "strengths": "Regularized tree shrinkage prevents runaway temperature predictions.",
-            },
-            {
-                "rank": 4,
-                "model": "lstm",
-                "display_name": "LSTM Neural Net",
-                "wins": 0,
-                "win_targets": "Deep Sequential Lookback",
-                "avg_mae": 2.494,
-                "avg_r2": 0.578,
-                "overall_accuracy": 57.8,
-                "training_time": 3.67,
-                "badge": "4TH PLACE",
-                "verdict": "Learns temporal trends but is sample-constrained on 2-year daily record compared to tree ensembles.",
-                "strengths": "Captures 14-day chronological momentum directly without explicit manual lag engineering.",
-            },
-        ]
+        # Dynamically compute overall ranking from actual metrics
+        overall_ranking = []
+        if self._multi_model_loaded and self._all_model_metrics:
+            model_aggregates: dict[str, dict[str, Any]] = {}
+            for m_key in all_model_keys:
+                m_all = [m for m in self._all_model_metrics if m["model_name"] == m_key]
+                if not m_all:
+                    continue
+                avg_mae = round(sum(m["mae"] for m in m_all) / len(m_all), 3)
+                avg_r2 = round(sum(max(0.0, m["r2"]) for m in m_all) / len(m_all), 3)
+                training_time = round(m_all[0].get("training_time_s", 0.0), 2)
+
+                # Count target wins
+                wins = 0
+                win_targets_list: list[str] = []
+                target_labels = {"rainfall_mm": "Rainfall", "tmax_c": "Max Temp", "tmin_c": "Min Temp"}
+                for target in ["rainfall_mm", "tmax_c", "tmin_c"]:
+                    t_metrics = [m for m in self._all_model_metrics if m["target"] == target]
+                    if t_metrics:
+                        t_metrics.sort(key=lambda x: x["mae"])
+                        if t_metrics[0]["model_name"] == m_key:
+                            wins += 1
+                            win_targets_list.append(target_labels[target])
+
+                model_aggregates[m_key] = {
+                    "avg_mae": avg_mae,
+                    "avg_r2": avg_r2,
+                    "overall_accuracy": round(avg_r2 * 100, 1),
+                    "training_time": training_time,
+                    "wins": wins,
+                    "win_targets": " & ".join(win_targets_list) if win_targets_list else "—",
+                }
+
+            # Sort by: most target wins first, then lowest avg_mae
+            sorted_models = sorted(
+                model_aggregates.items(),
+                key=lambda x: (-x[1]["wins"], x[1]["avg_mae"]),
+            )
+
+            rank_badges = ["🥇 OVERALL WINNER", "🥈 RUNNER-UP", "🥉 3RD PLACE"]
+            for rank, (m_key, agg) in enumerate(sorted_models, 1):
+                badge = rank_badges[rank - 1] if rank <= 3 else f"{rank}TH PLACE"
+                icon = model_icons.get(m_key, "📦")
+                desc = model_arch_descriptions.get(m_key, "Machine learning model for climate prediction.")
+
+                overall_ranking.append({
+                    "rank": rank,
+                    "model": m_key,
+                    "display_name": model_display_names.get(m_key, m_key),
+                    "icon": icon,
+                    "wins": agg["wins"],
+                    "win_targets": agg["win_targets"],
+                    "avg_mae": agg["avg_mae"],
+                    "avg_r2": agg["avg_r2"],
+                    "overall_accuracy": agg["overall_accuracy"],
+                    "training_time": agg["training_time"],
+                    "badge": badge,
+                    "verdict": desc,
+                    "strengths": desc,
+                    "color": model_colors.get(m_key, "#888"),
+                })
 
         return {
             "targets": targets_detailed,
             "overall_ranking": overall_ranking,
             "chart_data": chart_data,
             "best_models": self._best_models,
+            "model_display_names": model_display_names,
+            "model_colors": model_colors,
+            "model_icons": model_icons,
+            "model_arch_descriptions": model_arch_descriptions,
         }
 
     def get_multi_model_forecasts(

@@ -38,7 +38,7 @@
     <button class="tab-btn" data-tab="scorecard" role="tab" aria-selected="false" id="tab-scorecard-btn">
       <span class="tab-icon">⚖️</span>
       <span>Model Comparison</span>
-      <span class="nav-counter-pill">4 Models</span>
+      <span class="nav-counter-pill">8 Models</span>
     </button>
     <button class="tab-btn" data-tab="replay" role="tab" aria-selected="false" id="tab-replay-btn">
       <span class="tab-icon">⏳</span>
@@ -294,11 +294,11 @@
       </button>
     </div>
     <p class="muted" style="font-size: 0.88rem; margin-bottom: 1rem;">
-      4 Machine Learning architectures trained and evaluated on identical 70/15/15 chronological splits of IMD gridded observations (761 test samples). Compare performance and accuracy deltas below:
+      {{ state.model_comparison_detailed.overall_ranking | length }} Machine Learning architectures trained and evaluated on identical 70/15/15 chronological splits of IMD gridded observations (761 test samples). Compare performance and accuracy deltas below:
     </p>
     <div class="leaderboard-grid" style="margin-bottom: 0;">
       {% for row in state.model_comparison_detailed.overall_ranking %}
-      <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 3px solid {% if row.rank == 1 %}#00f5d4{% elif row.rank == 2 %}#2ecc71{% elif row.rank == 3 %}#ff9f43{% else %}#a55eea{% endif %};">
+      <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 3px solid {{ row.color|default('#888') }};">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
           <span style="font-weight: 700; font-size: 0.98rem; color: #fff;">
             <span class="rank-badge rank-{{ row.rank }}">{{ row.rank }}</span>{{ row.display_name }}
@@ -331,16 +331,21 @@
     <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
       <span style="font-size: 0.82rem; text-transform: uppercase; font-weight: 700; color: var(--cyan); letter-spacing: 0.05em;">Forecasting Engine:</span>
       <div class="model-switch-pills" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button class="chip chip-active model-chip" data-model="random_forest" id="btn-model-rf">🌲 Random Forest (Best: Rain, Tmax)</button>
-        <button class="chip model-chip" data-model="hist_gradient_boosting" id="btn-model-hgb">📊 HistGB (Best: Tmin)</button>
-        <button class="chip model-chip" data-model="xgboost" id="btn-model-xgb">⚡ XGBoost</button>
-        <button class="chip model-chip" data-model="lstm" id="btn-model-lstm">🧠 LSTM</button>
+        {% if state.model_comparison_detailed and state.model_comparison_detailed.overall_ranking %}
+          {% for row in state.model_comparison_detailed.overall_ranking %}
+          <button class="chip {% if loop.first %}chip-active{% endif %} model-chip" data-model="{{ row.model }}" id="btn-model-{{ row.model }}">
+            {{ row.icon|default('📦') }} {{ row.display_name }}{% if row.wins > 0 %} (Best: {{ row.win_targets }}){% endif %}
+          </button>
+          {% endfor %}
+        {% else %}
+          <button class="chip chip-active model-chip" data-model="random_forest" id="btn-model-rf">🌲 Random Forest</button>
+        {% endif %}
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 0.8rem;">
       <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; cursor: pointer; color: #fff;">
         <input type="checkbox" id="overlay-all-models-check" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--cyan);" />
-        <span><strong>Compare All 4 Models on Chart</strong></span>
+        <span><strong>Compare All 8 Models on Chart</strong></span>
       </label>
     </div>
   </div>
@@ -796,7 +801,7 @@
       </div>
       <div class="leaderboard-grid" style="padding: 0.8rem 1.2rem;">
         {% for row in state.model_comparison_detailed.overall_ranking %}
-        <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 4px solid {% if row.rank == 1 %}#00f5d4{% elif row.rank == 2 %}#2ecc71{% elif row.rank == 3 %}#ff9f43{% else %}#a55eea{% endif %};">
+        <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 4px solid {{ row.color|default('#888') }};">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
             <span style="font-weight: 700; font-size: 1.05rem; color: #fff;">
               <span class="rank-badge rank-{{ row.rank }}">{{ row.rank }}</span>{{ row.display_name }}
@@ -953,30 +958,16 @@
         </div>
       </div>
       <div class="leaderboard-grid" style="padding: 0.8rem 1.2rem;">
-        <article class="leaderboard-card" style="border-left: 3px solid #00f5d4;">
-          <h4 style="color: #00f5d4; margin-bottom: 0.4rem;">🌲 Random Forest (Ensemble Bagging)</h4>
-          <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
-            <strong>Why it won Rainfall & Tmax:</strong> The 300 bootstrap-aggregated decision trees average out high-variance predictions, preventing outlier over-estimation on zero-inflated monsoon rainfall events and capturing summer heat plateaus.
-          </p>
-        </article>
-        <article class="leaderboard-card" style="border-left: 3px solid #2ecc71;">
-          <h4 style="color: #2ecc71; margin-bottom: 0.4rem;">📊 HistGradientBoosting (Histogram Boosting)</h4>
-          <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
-            <strong>Why it won Min Temperature:</strong> Discrete 255-bin histogram split evaluation captures subtle overnight radiative cooling gradients better than bagged trees, while natively supporting missing satellite channels.
-          </p>
-        </article>
-        <article class="leaderboard-card" style="border-left: 3px solid #ff9f43;">
-          <h4 style="color: #ff9f43; margin-bottom: 0.4rem;">⚡ XGBoost (Extreme Gradient Boosting)</h4>
-          <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
-            <strong>How it compares:</strong> Excellent on temperature (Rank 2 on Tmin, +4.1% error gap), but slightly overfits extreme rainfall spikes without an asymmetric quantile loss function.
-          </p>
-        </article>
-        <article class="leaderboard-card" style="border-left: 3px solid #a55eea;">
-          <h4 style="color: #a55eea; margin-bottom: 0.4rem;">🧠 LSTM Neural Network (Deep Recurrent)</h4>
-          <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
-            <strong>Why it lagged tree models:</strong> Deep sequence models require 10–30 years of daily continuous records to surpass gradient boosted trees on tabular lag features. On 2 years of daily data (~731 steps), sample scarcity limits generalization.
-          </p>
-        </article>
+        {% if state.model_comparison_detailed and state.model_comparison_detailed.overall_ranking %}
+          {% for row in state.model_comparison_detailed.overall_ranking %}
+          <article class="leaderboard-card" style="border-left: 3px solid {{ row.color|default('#888') }};">
+            <h4 style="color: {{ row.color|default('#888') }}; margin-bottom: 0.4rem;">{{ row.icon|default('📦') }} {{ row.display_name }}</h4>
+            <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
+              {{ row.strengths }}
+            </p>
+          </article>
+          {% endfor %}
+        {% endif %}
       </div>
     </div>
 

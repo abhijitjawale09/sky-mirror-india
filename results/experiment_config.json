@@ -30,8 +30,12 @@
   ],
   "models_trained": [
     "hist_gradient_boosting",
+    "hurdle_lightgbm",
     "lstm",
     "random_forest",
+    "st_gnn",
+    "stacking_ensemble",
+    "temporal_transformer",
     "xgboost"
   ],
   "random_seed": 42
