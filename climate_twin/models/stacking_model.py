@@ -73,8 +73,9 @@ class PhysicsStackingClimateModel(ClimateModel):
             (
                 "rf",
                 RandomForestRegressor(
-                    n_estimators=150,
+                    n_estimators=200,
                     max_depth=16,
+                    max_features=0.8,
                     min_samples_leaf=2,
                     n_jobs=-1,
                     random_state=self.random_state,
@@ -85,7 +86,9 @@ class PhysicsStackingClimateModel(ClimateModel):
                 HistGradientBoostingRegressor(
                     max_iter=250,
                     learning_rate=0.05,
-                    max_depth=10,
+                    max_depth=6,
+                    min_samples_leaf=20,
+                    l2_regularization=0.5,
                     random_state=self.random_state,
                 ),
             ),
@@ -95,11 +98,12 @@ class PhysicsStackingClimateModel(ClimateModel):
             estimators.append((
                 "xgb",
                 XGBRegressor(
-                    n_estimators=150,
-                    learning_rate=0.05,
-                    max_depth=6,
+                    n_estimators=250,
+                    learning_rate=0.03,
+                    max_depth=4,
                     subsample=0.8,
                     colsample_bytree=0.8,
+                    reg_alpha=0.5,
                     n_jobs=-1,
                     random_state=self.random_state,
                 ),
@@ -109,10 +113,10 @@ class PhysicsStackingClimateModel(ClimateModel):
             estimators.append((
                 "lgb",
                 lgb.LGBMRegressor(
-                    n_estimators=150,
-                    learning_rate=0.05,
-                    max_depth=7,
-                    num_leaves=31,
+                    n_estimators=200,
+                    learning_rate=0.03,
+                    max_depth=5,
+                    num_leaves=24,
                     subsample=0.8,
                     colsample_bytree=0.8,
                     n_jobs=-1,

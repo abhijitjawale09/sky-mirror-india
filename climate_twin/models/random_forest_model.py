@@ -25,6 +25,7 @@ class RandomForestClimateModel(ClimateModel):
         self,
         n_estimators: int = 300,
         max_depth: int = 18,
+        max_features: float | str = 0.8,
         min_samples_leaf: int = 2,
         random_state: int = 42,
     ) -> None:
@@ -33,6 +34,7 @@ class RandomForestClimateModel(ClimateModel):
         self._hyperparameters = {
             "n_estimators": n_estimators,
             "max_depth": max_depth,
+            "max_features": max_features,
             "min_samples_leaf": min_samples_leaf,
             "random_state": random_state,
         }
@@ -49,6 +51,7 @@ class RandomForestClimateModel(ClimateModel):
         self.model = RandomForestRegressor(
             n_estimators=self._hyperparameters["n_estimators"],
             max_depth=self._hyperparameters["max_depth"],
+            max_features=self._hyperparameters["max_features"],
             min_samples_leaf=self._hyperparameters["min_samples_leaf"],
             n_jobs=-1,
             random_state=self._hyperparameters["random_state"],

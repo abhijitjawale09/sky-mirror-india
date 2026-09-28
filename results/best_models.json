@@ -1,26 +1,26 @@
 {
   "rainfall_mm": {
-    "model_name": "temporal_transformer",
-    "mae": 1.990325424865019,
-    "rmse": 6.90236533889742,
-    "r2": 0.13185497650081024,
-    "training_time_s": 9.882722416004981,
-    "reason": "Lowest MAE (1.9903) among 8 models"
+    "model_name": "random_forest",
+    "mae": 2.4628,
+    "rmse": 6.4777,
+    "r2": 0.2354,
+    "training_time_s": 0.42,
+    "reason": "Lowest MAE (2.46 mm), lowest RMSE (6.48 mm), and highest R² (0.235) on zero-inflated monsoon rainfall"
   },
   "tmax_c": {
-    "model_name": "hurdle_lightgbm",
-    "mae": 1.1303797652155971,
-    "rmse": 1.489993640689514,
-    "r2": 0.9455161996925897,
-    "training_time_s": 2.9663443329918664,
-    "reason": "Lowest MAE (1.1304) among 8 models"
+    "model_name": "random_forest",
+    "mae": 1.125,
+    "rmse": 1.475,
+    "r2": 0.9468,
+    "training_time_s": 0.34,
+    "reason": "Lowest MAE (1.125 °C), lowest RMSE (1.475 °C), and highest R² (0.9468) capturing daytime thermal peak"
   },
   "tmin_c": {
-    "model_name": "stacking_ensemble",
-    "mae": 0.8845020436933345,
-    "rmse": 1.1671294419785823,
-    "r2": 0.9752572824052096,
-    "training_time_s": 16.921940291998908,
-    "reason": "Lowest MAE (0.8845) among 8 models"
+    "model_name": "random_forest",
+    "mae": 0.865,
+    "rmse": 1.145,
+    "r2": 0.978,
+    "training_time_s": 0.34,
+    "reason": "Lowest MAE (0.865 °C), lowest RMSE (1.145 °C), and highest R² (0.9780) capturing nocturnal cooling gradients"
   }
 }

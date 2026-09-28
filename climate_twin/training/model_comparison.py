@@ -25,6 +25,31 @@ COMPARISON_CSV = RESULTS_DIR / "model_comparison.csv"
 BEST_MODELS_JSON = RESULTS_DIR / "best_models.json"
 
 
+import numpy as np
+
+def calculate_metrics(y_true: list[float] | np.ndarray, y_pred: list[float] | np.ndarray) -> dict[str, float]:
+    """Calculate Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and R² score.
+
+    Args:
+        y_true: Ground-truth target values.
+        y_pred: Predicted values.
+
+    Returns:
+        dict with 'mae', 'rmse', and 'r2'.
+    """
+    y_true_arr = np.asarray(y_true, dtype=np.float64)
+    y_pred_arr = np.asarray(y_pred, dtype=np.float64)
+
+    mae = float(np.mean(np.abs(y_true_arr - y_pred_arr)))
+    rmse = float(np.sqrt(np.mean((y_true_arr - y_pred_arr) ** 2)))
+
+    sse = float(np.sum((y_true_arr - y_pred_arr) ** 2))
+    sst = float(np.sum((y_true_arr - np.mean(y_true_arr)) ** 2))
+    r2 = float(1.0 - (sse / sst)) if sst != 0.0 else 0.0
+
+    return {"mae": round(mae, 4), "rmse": round(rmse, 4), "r2": round(r2, 4)}
+
+
 def main() -> int:
     if not COMPARISON_CSV.exists() or not BEST_MODELS_JSON.exists():
         print(f"Error: Results files not found in {RESULTS_DIR}. Please run:")
@@ -38,9 +63,25 @@ def main() -> int:
     print("\n" + "=" * 80)
     print("ISRO BHARATIYA ANTARIKSH HACKATHON 2026 — MULTI-MODEL COMPARISON REPORT")
     print("=" * 80)
-    print("\nOverall Model Performance Table:")
+    print("\nOverall Model Performance Table (MAE, RMSE, R² per Target):")
     print("-" * 80)
     print(df.to_string(index=False))
+
+    # Calculate overall model summary across targets (Mean MAE, Mean RMSE, Mean R2)
+    summary_rows = []
+    for model_name, group in df.groupby("Model"):
+        summary_rows.append({
+            "Model": model_name,
+            "Mean MAE": round(group["MAE"].mean(), 4),
+            "Mean RMSE": round(group["RMSE"].mean(), 4),
+            "Mean R²": round(group["R²"].mean(), 4),
+            "Avg Train Time (s)": round(group["Training Time (s)"].mean(), 2),
+        })
+    summary_df = pd.DataFrame(summary_rows).sort_values("Mean MAE")
+    print("\n" + "=" * 80)
+    print("CROSS-TARGET ARCHITECTURE SUMMARY (Aggregated MAE, RMSE, and R²):")
+    print("-" * 80)
+    print(summary_df.to_string(index=False))
 
     print("\n" + "=" * 80)
     print("OPTIMAL MODEL SELECTION PER CLIMATE TARGET")

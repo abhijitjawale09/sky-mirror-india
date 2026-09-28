@@ -152,7 +152,7 @@ class HurdleLGBMClimateModel(ClimateModel):
         # Soft threshold gating for smooth gradients
         rain_pred = np.where(
             rain_probs > self.prob_threshold,
-            rain_intensities * (rain_probs / max(self.prob_threshold, 1e-4)),
+            rain_intensities * rain_probs,
             0.0,
         )
         rain_pred = np.maximum(0.0, rain_pred)

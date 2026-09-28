@@ -76,7 +76,7 @@
     "patience": 12,
     "random_state": 42
   },
-  "training_time_s": 9.882722416004981,
+  "training_time_s": 10.132477625011234,
   "residual_stds": {
     "rainfall_mm": 9.92645007475489,
     "tmax_c": 1.5765087702441087,

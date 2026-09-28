@@ -87,3 +87,53 @@ def test_dashboard_contains_model_scorecard(client):
     html = response.get_data(as_text=True)
     assert "Multi-Model Comparison" in html or "view-scorecard" in html
     assert "Best Model Per Target Variable" in html
+
+
+def test_calculate_metrics_accuracy():
+    from climate_twin.training.model_comparison import calculate_metrics
+    y_true = [10.0, 20.0, 30.0, 40.0]
+    y_pred = [12.0, 18.0, 33.0, 39.0]
+    # errors: +2, -2, +3, -1
+    # absolute errors: 2, 2, 3, 1 -> mean = 2.0
+    # squared errors: 4, 4, 9, 1 -> mean = 4.5 -> sqrt(4.5) = 2.1213
+    # mean(y_true) = 25.0
+    # sst = (10-25)^2 + (20-25)^2 + (30-25)^2 + (40-25)^2 = 225 + 25 + 25 + 225 = 500
+    # sse = 4 + 4 + 9 + 1 = 18
+    # r2 = 1 - 18/500 = 0.964
+    res = calculate_metrics(y_true, y_pred)
+    assert "mae" in res
+    assert "rmse" in res
+    assert "r2" in res
+    assert res["mae"] == 2.0
+    assert abs(res["rmse"] - 2.1213) < 1e-3
+    assert abs(res["r2"] - 0.964) < 1e-3
+
+
+def test_model_comparison_detailed_includes_mae_rmse_r2(client):
+    response = client.get("/api/model-comparison")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "model_comparison_detailed" in data
+    detailed = data["model_comparison_detailed"]
+
+    # Verify overall ranking has avg_mae, avg_rmse, avg_r2
+    assert "overall_ranking" in detailed
+    if detailed["overall_ranking"]:
+        first = detailed["overall_ranking"][0]
+        assert "avg_mae" in first
+        assert "avg_rmse" in first
+        assert "avg_r2" in first
+
+    # Verify chart_data has mae, rmse, and r2
+    assert "chart_data" in detailed
+    cd = detailed["chart_data"]
+    assert "rainfall_mae" in cd
+    assert "rainfall_rmse" in cd
+    assert "tmax_mae" in cd
+    assert "tmax_rmse" in cd
+    assert "tmin_mae" in cd
+    assert "tmin_rmse" in cd
+    assert "r2_scores" in cd
+    assert "rmse_scores" in cd
+    assert "mae_scores" in cd
+

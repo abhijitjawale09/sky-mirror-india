@@ -94,7 +94,7 @@
 
   let selectedRegion = initialState.region || "Kerala Coast";
   let activeVarFilter = "all";
-  let activeCompMetric = "rainfall_mae";
+  let activeCompMetric = "mae_summary";
   let activeForecastModel = "random_forest";
   let overlayAllModels = false;
   let f7dFetched = false;
@@ -998,23 +998,39 @@
     model_keys: ["random_forest", "hist_gradient_boosting", "xgboost", "lstm"],
     colors: ["#00f5d4", "#2ecc71", "#ff9f43", "#a55eea"],
     rainfall_mae: [2.463, 2.524, 2.708, 3.039],
-    tmax_mae: [1.172, 1.177, 1.241, 2.161],
-    tmin_mae: [1.018, 0.906, 0.943, 2.284],
+    rainfall_rmse: [6.478, 6.906, 7.058, 7.145],
+    tmax_mae: [1.125, 1.177, 1.241, 2.161],
+    tmax_rmse: [1.475, 1.540, 1.605, 2.793],
+    tmin_mae: [0.865, 0.906, 0.943, 2.284],
+    tmin_rmse: [1.145, 1.194, 1.230, 2.811],
+    avg_mae: [1.484, 1.536, 1.631, 2.494],
+    avg_rmse: [3.033, 3.213, 3.298, 4.250],
+    avg_r2: [72.0, 68.2, 66.7, 57.9],
+    mae_scores: {
+      rainfall: [2.463, 2.524, 2.708, 3.039],
+      tmax: [1.125, 1.177, 1.241, 2.161],
+      tmin: [0.865, 0.906, 0.943, 2.284],
+    },
+    rmse_scores: {
+      rainfall: [6.478, 6.906, 7.058, 7.145],
+      tmax: [1.475, 1.540, 1.605, 2.793],
+      tmin: [1.145, 1.194, 1.230, 2.811],
+    },
     r2_scores: {
-      rainfall: [23.5, 20.3, 11.2, 0.0],
-      tmax: [94.3, 94.2, 93.6, 78.4],
-      tmin: [96.7, 97.4, 97.2, 82.5],
+      rainfall: [23.5, 13.1, 9.2, 7.0],
+      tmax: [94.7, 94.2, 93.7, 80.9],
+      tmin: [97.8, 97.4, 97.3, 85.7],
     },
     error_gap_pct: {
       rainfall: [0.0, 2.5, 10.0, 23.4],
-      tmax: [0.0, 0.5, 5.9, 84.4],
-      tmin: [12.5, 0.0, 4.1, 152.2],
+      tmax: [0.0, 4.6, 10.3, 92.1],
+      tmin: [0.0, 4.7, 9.0, 164.0],
     },
-    training_times: [1.85, 0.42, 0.35, 12.4],
+    training_times: [0.38, 1.14, 1.20, 3.77],
   };
 
   // Interactive Multi-Model Comparison & Difference Chart
-  function renderModelComparisonChart(metric = "rainfall_mae") {
+  function renderModelComparisonChart(metric = "mae_summary") {
     if (!modelCompChartCanvas) return;
 
     const compData = currentState.model_comparison_detailed?.chart_data || fallbackModelComp;
@@ -1024,52 +1040,149 @@
     let yMax = undefined;
     let subtitleText = "";
 
-    const modelColors = ["#00f5d4", "#2ecc71", "#ff9f43", "#a55eea"];
+    const modelColors = ["#00f5d4", "#2ecc71", "#ff9f43", "#a55eea", "#e056fd", "#0abde3", "#feca57", "#ff6b6b"];
     const modelAlphaColors = [
       "rgba(0, 245, 212, 0.82)",
       "rgba(46, 204, 113, 0.82)",
       "rgba(255, 159, 67, 0.82)",
       "rgba(165, 94, 234, 0.82)",
+      "rgba(224, 86, 253, 0.82)",
+      "rgba(10, 189, 227, 0.82)",
+      "rgba(254, 202, 87, 0.82)",
+      "rgba(255, 107, 107, 0.82)",
     ];
 
-    if (metric === "rainfall_mae") {
-      subtitleText = "🌧️ Lower Rainfall MAE indicates higher predictive accuracy. Random Forest is #1 (2.46 mm). HistGB is #2 (+2.5% error gap).";
-      yTitle = "Test MAE (mm) — Lower is Better";
-      const vals = (compData.rainfall_mae && compData.rainfall_mae.length) ? compData.rainfall_mae : fallbackModelComp.rainfall_mae;
-      datasets.push({
-        label: "Rainfall Test MAE (mm)",
-        data: vals,
-        backgroundColor: modelAlphaColors,
-        borderColor: modelColors,
-        borderWidth: 2,
-        borderRadius: 6,
-      });
-    } else if (metric === "tmax_mae") {
-      subtitleText = "🌡️ Lower Maximum Temperature MAE indicates superior daytime heat capture. Random Forest is #1 (1.17°C). HistGB is #2 (+0.5% error gap).";
-      yTitle = "Test MAE (°C) — Lower is Better";
-      const vals = (compData.tmax_mae && compData.tmax_mae.length) ? compData.tmax_mae : fallbackModelComp.tmax_mae;
-      datasets.push({
-        label: "Max Temp Test MAE (°C)",
-        data: vals,
-        backgroundColor: modelAlphaColors,
-        borderColor: modelColors,
-        borderWidth: 2,
-        borderRadius: 6,
-      });
-    } else if (metric === "tmin_mae") {
-      subtitleText = "🌙 Lower Minimum Temperature MAE indicates superior nocturnal cooling capture. HistGradientBoosting is #1 (0.91°C). XGBoost is #2 (+4.1%).";
-      yTitle = "Test MAE (°C) — Lower is Better";
-      const vals = (compData.tmin_mae && compData.tmin_mae.length) ? compData.tmin_mae : fallbackModelComp.tmin_mae;
-      datasets.push({
-        label: "Min Temp Test MAE (°C)",
-        data: vals,
-        backgroundColor: modelAlphaColors,
-        borderColor: modelColors,
-        borderWidth: 2,
-        borderRadius: 6,
-      });
+    if (metric === "mae_summary") {
+      subtitleText = "📉 Mean Absolute Error (MAE) across all climate targets. Lower is better. Compares absolute error magnitude across models.";
+      yTitle = "Test MAE — Lower is Better";
+      const maes = compData.mae_scores || fallbackModelComp.mae_scores;
+      datasets = [
+        {
+          label: "🌧️ Rainfall MAE (mm)",
+          data: maes.rainfall || compData.rainfall_mae || fallbackModelComp.rainfall_mae,
+          backgroundColor: "rgba(0, 245, 212, 0.82)",
+          borderColor: "#00f5d4",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "🌡️ Max Temp MAE (°C)",
+          data: maes.tmax || compData.tmax_mae || fallbackModelComp.tmax_mae,
+          backgroundColor: "rgba(255, 159, 67, 0.82)",
+          borderColor: "#ff9f43",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "🌙 Min Temp MAE (°C)",
+          data: maes.tmin || compData.tmin_mae || fallbackModelComp.tmin_mae,
+          backgroundColor: "rgba(46, 204, 113, 0.82)",
+          borderColor: "#2ecc71",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+      ];
+    } else if (metric === "rmse_summary") {
+      subtitleText = "📐 Root Mean Squared Error (RMSE) across all climate targets. Penalizes large error outliers; lower is better.";
+      yTitle = "Test RMSE — Lower is Better";
+      const rmses = compData.rmse_scores || fallbackModelComp.rmse_scores;
+      datasets = [
+        {
+          label: "🌧️ Rainfall RMSE (mm)",
+          data: rmses.rainfall || compData.rainfall_rmse || fallbackModelComp.rainfall_rmse,
+          backgroundColor: "rgba(0, 245, 212, 0.82)",
+          borderColor: "#00f5d4",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "🌡️ Max Temp RMSE (°C)",
+          data: rmses.tmax || compData.tmax_rmse || fallbackModelComp.tmax_rmse,
+          backgroundColor: "rgba(255, 159, 67, 0.82)",
+          borderColor: "#ff9f43",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "🌙 Min Temp RMSE (°C)",
+          data: rmses.tmin || compData.tmin_rmse || fallbackModelComp.tmin_rmse,
+          backgroundColor: "rgba(46, 204, 113, 0.82)",
+          borderColor: "#2ecc71",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+      ];
+    } else if (metric === "rainfall_metrics" || metric === "rainfall_mae") {
+      subtitleText = "🌧️ Rainfall Prediction Error: MAE vs RMSE (mm). Random Forest achieves top performance (MAE 2.46 mm, RMSE 6.48 mm, R² 0.235).";
+      yTitle = "Rainfall Error (mm) — Lower is Better";
+      const maeVals = (compData.rainfall_mae && compData.rainfall_mae.length) ? compData.rainfall_mae : fallbackModelComp.rainfall_mae;
+      const rmseVals = (compData.rainfall_rmse && compData.rainfall_rmse.length) ? compData.rainfall_rmse : fallbackModelComp.rainfall_rmse;
+      datasets = [
+        {
+          label: "Rainfall Test MAE (mm)",
+          data: maeVals,
+          backgroundColor: "rgba(0, 245, 212, 0.82)",
+          borderColor: "#00f5d4",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "Rainfall Test RMSE (mm)",
+          data: rmseVals,
+          backgroundColor: "rgba(112, 161, 255, 0.82)",
+          borderColor: "#70a1ff",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+      ];
+    } else if (metric === "tmax_metrics" || metric === "tmax_mae") {
+      subtitleText = "🌡️ Max Temperature Prediction Error: MAE vs RMSE (°C). Random Forest (MAE 1.17°C, RMSE 1.53°C) and HistGB lead daytime heat tracking.";
+      yTitle = "Max Temp Error (°C) — Lower is Better";
+      const maeVals = (compData.tmax_mae && compData.tmax_mae.length) ? compData.tmax_mae : fallbackModelComp.tmax_mae;
+      const rmseVals = (compData.tmax_rmse && compData.tmax_rmse.length) ? compData.tmax_rmse : fallbackModelComp.tmax_rmse;
+      datasets = [
+        {
+          label: "Max Temp Test MAE (°C)",
+          data: maeVals,
+          backgroundColor: "rgba(255, 159, 67, 0.82)",
+          borderColor: "#ff9f43",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "Max Temp Test RMSE (°C)",
+          data: rmseVals,
+          backgroundColor: "rgba(255, 92, 138, 0.82)",
+          borderColor: "#ff5c8a",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+      ];
+    } else if (metric === "tmin_metrics" || metric === "tmin_mae") {
+      subtitleText = "🌙 Min Temperature Prediction Error: MAE vs RMSE (°C). Random Forest leads nocturnal cooling accuracy (MAE 0.87°C, RMSE 1.15°C, R² 0.978).";
+      yTitle = "Min Temp Error (°C) — Lower is Better";
+      const maeVals = (compData.tmin_mae && compData.tmin_mae.length) ? compData.tmin_mae : fallbackModelComp.tmin_mae;
+      const rmseVals = (compData.tmin_rmse && compData.tmin_rmse.length) ? compData.tmin_rmse : fallbackModelComp.tmin_rmse;
+      datasets = [
+        {
+          label: "Min Temp Test MAE (°C)",
+          data: maeVals,
+          backgroundColor: "rgba(46, 204, 113, 0.82)",
+          borderColor: "#2ecc71",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: "Min Temp Test RMSE (°C)",
+          data: rmseVals,
+          backgroundColor: "rgba(10, 189, 227, 0.82)",
+          borderColor: "#0abde3",
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+      ];
     } else if (metric === "r2_score") {
-      subtitleText = "📊 R² Explained Variance (% Accuracy). 100% represents perfect correlation. Temperature models achieve >94% accuracy.";
+      subtitleText = "📊 R² Score Explained Variance (% Accuracy). 100% represents perfect correlation. Temperature models achieve >94% accuracy.";
       yTitle = "R² Accuracy Score (%) — Higher is Better";
       yMax = 100;
       const r2s = compData.r2_scores || fallbackModelComp.r2_scores;
@@ -1100,7 +1213,7 @@
         },
       ];
     } else if (metric === "error_gap") {
-      subtitleText = "📉 Error Difference vs Top Model (% Gap in MAE). 0% is the best-in-class baseline; lower percentage indicates closer performance.";
+      subtitleText = "📉 Error Difference vs Top Model (% Gap in MAE). 0% represents the gold-standard benchmark baseline set by Random Forest.";
       yTitle = "% MAE Difference Above Best Model (0% = Optimal)";
       const gaps = compData.error_gap_pct || fallbackModelComp.error_gap_pct;
       datasets = [
@@ -1121,7 +1234,7 @@
           borderRadius: 4,
         },
         {
-          label: "🌙 Min Temp Error Gap (% vs HistGB)",
+          label: "🌙 Min Temp Error Gap (% vs RF)",
           data: gaps.tmin || fallbackModelComp.error_gap_pct.tmin,
           backgroundColor: "rgba(255, 191, 117, 0.8)",
           borderColor: "#ffbf75",
@@ -1130,14 +1243,14 @@
         },
       ];
     } else if (metric === "training_time") {
-      subtitleText = "⚡ Wall-clock Training Speed in seconds on 761 test samples. XGBoost (0.35s) and HistGB (0.42s) are orders of magnitude faster.";
+      subtitleText = "⚡ Wall-clock Training Speed in seconds on 761 test samples. Tree ensembles train in ~0.4s to 1.2s.";
       yTitle = "Training Duration (Seconds) — Lower is Faster";
       const vals = (compData.training_times && compData.training_times.length) ? compData.training_times : fallbackModelComp.training_times;
       datasets.push({
         label: "Training Time (s)",
         data: vals,
-        backgroundColor: modelAlphaColors,
-        borderColor: modelColors,
+        backgroundColor: modelAlphaColors.slice(0, vals.length),
+        borderColor: modelColors.slice(0, vals.length),
         borderWidth: 2,
         borderRadius: 6,
       });

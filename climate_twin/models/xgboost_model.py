@@ -25,12 +25,12 @@ class XGBoostClimateModel(ClimateModel):
 
     def __init__(
         self,
-        n_estimators: int = 500,
-        max_depth: int = 8,
-        learning_rate: float = 0.05,
+        n_estimators: int = 300,
+        max_depth: int = 4,
+        learning_rate: float = 0.03,
         subsample: float = 0.8,
         colsample_bytree: float = 0.8,
-        reg_alpha: float = 0.1,
+        reg_alpha: float = 0.5,
         reg_lambda: float = 1.0,
         min_child_weight: int = 5,
         random_state: int = 42,

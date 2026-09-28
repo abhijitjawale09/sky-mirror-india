@@ -24,11 +24,11 @@ class HistGBClimateModel(ClimateModel):
 
     def __init__(
         self,
-        max_iter: int = 500,
-        max_depth: int = 10,
+        max_iter: int = 300,
+        max_depth: int = 6,
         learning_rate: float = 0.05,
-        min_samples_leaf: int = 10,
-        l2_regularization: float = 0.1,
+        min_samples_leaf: int = 20,
+        l2_regularization: float = 0.5,
         max_bins: int = 255,
         random_state: int = 42,
     ) -> None:

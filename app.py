@@ -1,4 +1,5 @@
 from climate_twin import create_app
+from climate_twin.training.model_comparison import calculate_metrics
 
 
 app = create_app()

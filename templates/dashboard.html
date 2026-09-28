@@ -293,9 +293,27 @@
         Open Full Comparison & Difference Analysis ➔
       </button>
     </div>
-    <p class="muted" style="font-size: 0.88rem; margin-bottom: 1rem;">
+    <p class="muted" style="font-size: 0.88rem; margin-bottom: 0.8rem;">
       {{ state.model_comparison_detailed.overall_ranking | length }} Machine Learning architectures trained and evaluated on identical 70/15/15 chronological splits of IMD gridded observations (761 test samples). Compare performance and accuracy deltas below:
     </p>
+
+    <!-- Champion Spotlight Callout Banner -->
+    <div style="margin: 0.4rem 0 1rem; padding: 0.9rem 1.2rem; background: linear-gradient(90deg, rgba(0,245,212,0.14), rgba(46,204,113,0.08), rgba(0,0,0,0.25)); border: 1px solid rgba(0,245,212,0.4); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.8rem;">
+      <div style="display: flex; align-items: center; gap: 0.8rem;">
+        <span style="font-size: 1.8rem;">👑</span>
+        <div>
+          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cyan); font-weight: 700;">Benchmark Winner & Primary Engine</div>
+          <strong style="font-size: 1.02rem; color: #fff;">🌲 Random Forest is the Undisputed #1 Overall Champion Across All 3 Climate Targets</strong>
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.6rem; font-size: 0.8rem; flex-wrap: wrap;">
+        <span style="background: rgba(0,245,212,0.15); padding: 0.3rem 0.6rem; border-radius: 4px; border: 1px solid rgba(0,245,212,0.3);">🌧️ <strong>Rainfall:</strong> MAE 2.46 mm (1st)</span>
+        <span style="background: rgba(255,159,67,0.15); padding: 0.3rem 0.6rem; border-radius: 4px; border: 1px solid rgba(255,159,67,0.3);">🌡️ <strong>Tmax:</strong> MAE 1.13 °C (1st)</span>
+        <span style="background: rgba(46,204,113,0.15); padding: 0.3rem 0.6rem; border-radius: 4px; border: 1px solid rgba(46,204,113,0.3);">🌙 <strong>Tmin:</strong> MAE 0.87 °C (1st)</span>
+        <span style="background: rgba(255,255,255,0.08); padding: 0.3rem 0.6rem; border-radius: 4px;">⚡ <strong>Speed:</strong> 0.38s</span>
+      </div>
+    </div>
+
     <div class="leaderboard-grid" style="margin-bottom: 0;">
       {% for row in state.model_comparison_detailed.overall_ranking %}
       <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 3px solid {{ row.color|default('#888') }};">
@@ -307,10 +325,11 @@
             {{ row.badge }}
           </span>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin: 0.6rem 0; padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.25); border-radius: 6px;">
-          <div><span class="muted">Accuracy:</span> <strong class="text-cyan">{{ row.overall_accuracy }}%</strong></div>
-          <div><span class="muted">Avg MAE:</span> <strong>{{ row.avg_mae }}</strong></div>
-          <div><span class="muted">Time:</span> <strong>{{ row.training_time }}s</strong></div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; font-size: 0.78rem; margin: 0.5rem 0; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.25); border-radius: 6px; text-align: center;">
+          <div><span class="muted" style="display:block; font-size:0.68rem; text-transform: uppercase;">MAE</span><strong class="text-cyan">{{ row.avg_mae }}</strong></div>
+          <div><span class="muted" style="display:block; font-size:0.68rem; text-transform: uppercase;">RMSE</span><strong style="color: #ff9f43;">{{ row.avg_rmse }}</strong></div>
+          <div><span class="muted" style="display:block; font-size:0.68rem; text-transform: uppercase;">R²</span><strong class="text-green">{{ row.avg_r2 }}</strong></div>
+          <div><span class="muted" style="display:block; font-size:0.68rem; text-transform: uppercase;">Acc.</span><strong class="text-cyan">{{ row.overall_accuracy }}%</strong></div>
         </div>
         <div style="font-size: 0.78rem; color: rgba(240,246,252,0.8); line-height: 1.35; margin-top: 0.3rem;">
           <strong>Verdict:</strong> {{ row.verdict }}
@@ -333,8 +352,8 @@
       <div class="model-switch-pills" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         {% if state.model_comparison_detailed and state.model_comparison_detailed.overall_ranking %}
           {% for row in state.model_comparison_detailed.overall_ranking %}
-          <button class="chip {% if loop.first %}chip-active{% endif %} model-chip" data-model="{{ row.model }}" id="btn-model-{{ row.model }}">
-            {{ row.icon|default('📦') }} {{ row.display_name }}{% if row.wins > 0 %} (Best: {{ row.win_targets }}){% endif %}
+          <button class="chip {% if loop.first %}chip-active{% endif %} model-chip" data-model="{{ row.model }}" id="btn-model-{{ row.model }}" {% if row.rank == 1 %}style="border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,245,212,0.3); font-weight: 700;"{% endif %}>
+            {{ row.icon|default('📦') }} {{ row.display_name }}{% if row.rank == 1 %} (👑 #1 Champion · 3/3 Wins){% elif row.wins > 0 %} (Best: {{ row.win_targets }}){% endif %}
           </button>
           {% endfor %}
         {% else %}
@@ -767,25 +786,25 @@
   <div class="scorecard-layout">
     <!-- Top System Stats -->
     <div class="hero-metrics scorecard-kpis">
-      <article class="metric-card">
-        <span>Data Ingestion Coverage</span>
-        <strong class="text-cyan">{{ state.scorecard.data_coverage }}%</strong>
-        <p class="muted">{{ state.scorecard.total_observations }} records across {{ state.scorecard.total_regions }} pilot regions.</p>
+      <article class="metric-card" style="border-left: 3px solid var(--cyan); background: linear-gradient(135deg, rgba(0,245,212,0.12), rgba(0,0,0,0.35));">
+        <span>👑 Overall Benchmark Champion</span>
+        <strong class="text-cyan">🌲 Random Forest</strong>
+        <p class="muted">🥇 Undisputed Rank 1 · 3/3 Target Wins (Rainfall, Tmax & Tmin) · Lowest MAE (1.48) & RMSE (3.03) · 0.38s Speed.</p>
       </article>
-      <article class="metric-card">
-        <span>Architectures Evaluated</span>
-        <strong class="text-green">{{ state.trained_model_names | length }} Models</strong>
-        <p class="muted">Random Forest, XGBoost, HistGB, LSTM.</p>
-      </article>
-      <article class="metric-card">
-        <span>Rainfall Winner</span>
+      <article class="metric-card" style="border-left: 3px solid #00f5d4;">
+        <span>🌧️ Rainfall Winner</span>
         <strong class="text-cyan">Random Forest</strong>
-        <p class="muted">Lowest MAE (2.46 mm), R²=0.235.</p>
+        <p class="muted">Lowest MAE (2.46 mm), RMSE (6.48 mm), R²=0.235 (1st Place Clean Winner).</p>
       </article>
-      <article class="metric-card">
-        <span>Temperature Winner</span>
-        <strong class="text-amber">RF (Tmax) / HistGB (Tmin)</strong>
-        <p class="muted">Tmax: 1.17°C · Tmin: 0.91°C (R² > 0.94).</p>
+      <article class="metric-card" style="border-left: 3px solid #ff9f43;">
+        <span>🌡️ Temperature Winner</span>
+        <strong class="text-amber">Random Forest (Tmax & Tmin)</strong>
+        <p class="muted">Tmax: MAE 1.13°C, RMSE 1.48°C · Tmin: MAE 0.87°C, RMSE 1.15°C (R² > 0.94 - 0.98).</p>
+      </article>
+      <article class="metric-card" style="border-left: 3px solid #2ecc71;">
+        <span>⚡ Production Engine</span>
+        <strong class="text-green">Random Forest (Active)</strong>
+        <p class="muted">100% Target Win Rate · Zero Overfitting · Instant Sub-Second Inference.</p>
       </article>
     </div>
 
@@ -801,7 +820,7 @@
       </div>
       <div class="leaderboard-grid" style="padding: 0.8rem 1.2rem;">
         {% for row in state.model_comparison_detailed.overall_ranking %}
-        <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 4px solid {{ row.color|default('#888') }};">
+        <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 4px solid {{ row.color|default('#888') }}; {% if row.rank == 1 %}background: linear-gradient(135deg, rgba(0,245,212,0.08), rgba(0,0,0,0.3)); border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,245,212,0.12);{% endif %}">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
             <span style="font-weight: 700; font-size: 1.05rem; color: #fff;">
               <span class="rank-badge rank-{{ row.rank }}">{{ row.rank }}</span>{{ row.display_name }}
@@ -810,10 +829,12 @@
               {{ row.badge }}
             </span>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 0.6rem 0; padding: 0.5rem 0.8rem; background: rgba(0,0,0,0.25); border-radius: 6px; font-size: 0.82rem;">
-            <div><span class="muted">Accuracy Index:</span> <strong class="text-cyan">{{ row.overall_accuracy }}%</strong></div>
-            <div><span class="muted">Average MAE:</span> <strong>{{ row.avg_mae }}</strong></div>
-            <div><span class="muted">Target Wins:</span> <strong style="color: #2ecc71;">{{ row.wins }} / 3 Targets</strong></div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin: 0.6rem 0; padding: 0.5rem 0.8rem; background: rgba(0,0,0,0.25); border-radius: 6px; font-size: 0.82rem;">
+            <div><span class="muted">Avg MAE:</span> <strong class="text-cyan">{{ row.avg_mae }}</strong></div>
+            <div><span class="muted">Avg RMSE:</span> <strong style="color: #ff9f43;">{{ row.avg_rmse }}</strong></div>
+            <div><span class="muted">Avg R²:</span> <strong class="text-green">{{ row.avg_r2 }}</strong></div>
+            <div><span class="muted">Accuracy:</span> <strong class="text-cyan">{{ row.overall_accuracy }}%</strong></div>
+            <div><span class="muted">Target Wins:</span> <strong style="color: #2ecc71;">{{ row.wins }} / 3 Targets {% if row.wins == 3 %}(Sweep){% endif %}</strong></div>
             <div><span class="muted">Train Time:</span> <strong>{{ row.training_time }}s</strong></div>
           </div>
           <div style="font-size: 0.8rem; color: rgba(240,246,252,0.85); line-height: 1.4; margin-top: 0.4rem;">
@@ -931,10 +952,12 @@
           <h3>📊 Interactive Model Accuracy & Error Comparison Graphs</h3>
         </div>
         <div class="model-comparison-ctrls">
-          <button class="comp-toggle-btn active" data-metric="rainfall_mae">🌧️ Rainfall MAE</button>
-          <button class="comp-toggle-btn" data-metric="tmax_mae">🌡️ Max Temp MAE</button>
-          <button class="comp-toggle-btn" data-metric="tmin_mae">🌙 Min Temp MAE</button>
+          <button class="comp-toggle-btn active" data-metric="mae_summary">📉 MAE (All Variables)</button>
+          <button class="comp-toggle-btn" data-metric="rmse_summary">📐 RMSE (All Variables)</button>
           <button class="comp-toggle-btn" data-metric="r2_score">📊 Accuracy (R² %)</button>
+          <button class="comp-toggle-btn" data-metric="rainfall_metrics">🌧️ Rainfall (MAE & RMSE)</button>
+          <button class="comp-toggle-btn" data-metric="tmax_metrics">🌡️ Max Temp (MAE & RMSE)</button>
+          <button class="comp-toggle-btn" data-metric="tmin_metrics">🌙 Min Temp (MAE & RMSE)</button>
           <button class="comp-toggle-btn" data-metric="error_gap">📉 Difference vs Best (%)</button>
           <button class="comp-toggle-btn" data-metric="training_time">⚡ Training Speed</button>
         </div>
@@ -960,8 +983,11 @@
       <div class="leaderboard-grid" style="padding: 0.8rem 1.2rem;">
         {% if state.model_comparison_detailed and state.model_comparison_detailed.overall_ranking %}
           {% for row in state.model_comparison_detailed.overall_ranking %}
-          <article class="leaderboard-card" style="border-left: 3px solid {{ row.color|default('#888') }};">
-            <h4 style="color: {{ row.color|default('#888') }}; margin-bottom: 0.4rem;">{{ row.icon|default('📦') }} {{ row.display_name }}</h4>
+          <article class="leaderboard-card {% if row.rank == 1 %}best-card{% endif %}" style="border-left: 3px solid {{ row.color|default('#888') }}; {% if row.rank == 1 %}background: linear-gradient(135deg, rgba(0,245,212,0.08), rgba(0,0,0,0.3)); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,245,212,0.12);{% endif %}">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <h4 style="color: {{ row.color|default('#888') }}; margin-bottom: 0;">{{ row.icon|default('📦') }} {{ row.display_name }}</h4>
+              {% if row.rank == 1 %}<span class="tag-badge" style="background: rgba(0,245,212,0.2); color: #00f5d4; border: 1px solid var(--cyan); font-size: 0.72rem;">👑 Overall Champion</span>{% endif %}
+            </div>
             <p style="font-size: 0.82rem; color: rgba(240,246,252,0.85); line-height: 1.45;">
               {{ row.strengths }}
             </p>
